@@ -6,7 +6,7 @@ export const metadata: AppMetadata = {
   name: 'About Me',
   summary: 'Chat with my 3D avatar',
   description:
-    "My name is Simo, and I'm a software engineer. This is my portfolio. Please try all the apps I've made! Hope you get as much fun trying them as I did building them.",
+    "My name is Mohamed (Simo) Marhraoui, and I'm a software engineer. This is my portfolio. Please try all the apps I've made! Hope you get as much fun trying them as I did building them.",
   type: 'demo',
   Icon: AppIcon,
   dark: false,

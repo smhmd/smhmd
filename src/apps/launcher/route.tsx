@@ -62,7 +62,7 @@ const SOCIAL_LINKS = [
     label: 'X (Twitter)',
     href: SOCIALS.Twitter,
     Icon: Twitter,
-    className: 'text-sky-500',
+    className: 'text-neutral-100 group-hocus:text-neutral-900',
   },
   {
     id: 'linkedin',
@@ -90,16 +90,35 @@ export default function Launcher() {
         )}
       />
       <header className='@container flex flex-col items-center justify-end gap-3 text-center'>
-        <div
-          className={clsx(
-            'l:size-[12lvh] p:size-[15lvh]',
-            'overflow-hidden rounded-full bg-neutral-800 shadow-xl ring-1 ring-neutral-700',
-          )}>
-          <img
-            src='/images/simo.svg'
-            alt='Simo, illustrated'
-            className='size-full object-cover'
-          />
+        <div className='relative'>
+          <div
+            className={clsx(
+              'l:size-[12lvh] p:size-[15lvh]',
+              'overflow-hidden rounded-full bg-neutral-800 shadow-xl ring-1 ring-neutral-700',
+            )}>
+            <img
+              src='/images/simo.svg'
+              alt='Mohamed (Simo) Marhraoui, illustrated'
+              className='size-full object-cover'
+            />
+          </div>
+
+          <a
+            href={SOCIALS.LinkedIn}
+            target='_blank'
+            rel='noreferrer me'
+            aria-label='Hire me — LinkedIn'
+            className='group absolute bottom-[70%] left-[85%] outline-none'>
+            <span
+              className={clsx(
+                'block origin-bottom-left whitespace-nowrap rounded-2xl rounded-bl-sm px-3 py-1.5',
+                'text-shadow-none bg-white text-sm font-semibold text-neutral-900 shadow-lg',
+                '-rotate-6 transition duration-200 ease-out',
+                'group-hocus:rotate-0 group-hocus:scale-110 group-hocus:bg-blue-500 group-hocus:text-white',
+              )}>
+              Hire me!
+            </span>
+          </a>
         </div>
 
         <div className='flex flex-col gap-1'>
@@ -107,7 +126,7 @@ export default function Launcher() {
             Simo
           </h1>
           <p className='text-[1.5cqh] font-medium text-neutral-50/80'>
-            Software engineer. I design and build for the web.
+            Senior Frontend Engineer. I design and build for the web.
           </p>
         </div>
       </header>

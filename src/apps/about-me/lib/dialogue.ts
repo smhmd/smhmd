@@ -43,7 +43,7 @@ export const dialogue: Record<NodeId, DialogueNode> = {
     sprite: [6.8, 8.75],
     choices: [
       { text: "Show me what you've built.", node: 'apps_answer' },
-      { text: 'How do I reach you?', node: 'contact_answer' },
+      { text: "I wanna hire you. Let's connect!", node: 'contact_answer' },
     ],
     animations: [],
   },
