@@ -10,7 +10,7 @@ export const Container = memo(({ className, ...props }: ContainerProps) => {
   return (
     <main
       className={clsx(
-        'no-scrollbar h-dvh overflow-auto',
+        'no-scrollbar h-dvh overflow-auto overscroll-none',
         // No pinch-zoom, pan, or accidental text selection.
         'touch-none select-none',
         'init:text-balance text-pretty',
