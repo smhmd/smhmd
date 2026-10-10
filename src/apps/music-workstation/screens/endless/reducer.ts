@@ -1,6 +1,6 @@
 import { audio } from '../../lib/audio'
 import type { Controls, KnobMap, State } from '../../lib/common'
-import { MAX_STEPS } from '../../lib/common'
+import { HIGHEST, LOWEST, MAX_STEPS, midi, noteName } from '../../lib/common'
 
 export const knobs: KnobMap = {
   blue: { key: 'division', perTurn: 1, min: 0, max: 1 },
@@ -20,14 +20,21 @@ export function attack(state: State, note: string) {
   return { sequence: [...state.sequence, note] }
 }
 
-const backspace = ({ sequence }: State) => ({ sequence: sequence.slice(0, -1) })
+/** Shift the whole melody by semitones — unless it would leave the keyboard. */
+function transpose({ sequence }: State, by: number) {
+  const pitches = sequence.map((note) =>
+    note === null ? null : midi(note) + by,
+  )
+  if (pitches.some((m) => m !== null && (m < LOWEST || m > HIGHEST))) return
+  return { sequence: pitches.map((m) => (m === null ? null : noteName(m))) }
+}
 
-// left / delete both backspace the last step; space appends a rest.
+// left / right transpose, space appends a rest, scissors removes the last step.
 export const controls: Controls = {
-  left: backspace,
-  delete: backspace,
+  left: (state) => transpose(state, -1),
+  right: (state) => transpose(state, 1),
   space: ({ sequence }) =>
     sequence.length < MAX_STEPS ? { sequence: [...sequence, null] } : undefined,
+  delete: ({ sequence }) => ({ sequence: sequence.slice(0, -1) }),
   play: ({ playing }) => ({ playing: !playing }),
-  reset: () => ({ sequence: [], playing: false }),
 }

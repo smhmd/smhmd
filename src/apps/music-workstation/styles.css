@@ -84,90 +84,89 @@
   background: #0d1114;
 }
 
-.bg-base-border {
-  background: linear-gradient(180deg, #f4f2f0 0%, #8a8587 100%);
-}
+/* ── Deck ─────────────────────────────────────────────────────────────
+   Every control sits in a `.cell`. Keys are a `.cap` inside one; encoders
+   are a `.knob` (engraved ring) holding a `.knob-cap`. */
 
-.bg-base {
-  background: linear-gradient(138deg, #e2e1dd 5%, #d8d4d3 95%);
-}
-
-.shadow-base {
+.cell {
+  isolation: isolate;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  background:
+    linear-gradient(138deg, #e2e1dd 5%, #d8d4d3 95%) padding-box,
+    linear-gradient(180deg, #f4f2f0 0%, #8a8587 100%) border-box;
   box-shadow: 0px 6px 8px -1px rgba(0, 0, 0, 0.5);
 }
 
-.shadow-base:has([role='button']:active) {
-  scale: 0.98;
+.key {
+  position: relative;
+  --ink: #3c444a;
 }
 
-.bg-radial-border {
-  background: linear-gradient(
-    132deg,
-    rgba(255, 255, 255, 0.6) 14%,
-    #928c87 93%
-  );
-}
-
-.bg-radial-lg-border {
-  background: linear-gradient(
-    123deg,
-    rgba(255, 255, 255, 0.6) 14%,
-    #928c87 93%
-  );
-}
-
-.bg-bump {
-  background: linear-gradient(130deg, #f5f3f1 12%, transparent 48%);
-}
-
-.bg-bump-lg {
-  background: linear-gradient(110deg, #f5f3f1 12%, transparent 48%);
-}
-
-.bg-button {
+.cap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  color: var(--ink);
+  font-size: 2.25rem; /* glyph box; the ink itself is about half of it */
   background: linear-gradient(123deg, #e4dfdf 14%, #d9d5d2 88%);
-}
-
-.shadow-button {
   box-shadow:
-    0px 0px 1px rgba(225, 225, 225, 0.4),
-    4px 4px 5px 0px #857e7c,
-    1px 6px 8px 0px rgba(130, 124, 122, 0.5),
-    3px 8px 6px 0px rgba(130, 124, 122, 0.3);
+    inset 1px 1px 1px rgb(255 255 255 / 0.7),
+    inset -1px -1px 1px rgb(146 140 135 / 0.5),
+    4px 4px 5px #857e7c,
+    1px 6px 8px rgb(130 124 122 / 0.5);
   transition: box-shadow 80ms ease-out;
 }
 
-/* Pressed: the cap sinks toward the base, so its shadow tightens. */
-button:active ~ .shadow-button {
-  box-shadow:
-    0px 0px 1px rgba(225, 225, 225, 0.4),
-    2px 2px 3px 0px #857e7c,
-    1px 3px 4px 0px rgba(130, 124, 122, 0.5),
-    1px 4px 3px 0px rgba(130, 124, 122, 0.3);
+/* the soft highlight the cap's dome throws on the cell */
+.cap::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(130deg, #f5f3f1 12%, transparent 48%);
+  filter: blur(1px);
 }
 
-.bg-button-top {
+.cap-black {
+  border: 2px solid #dcd7d4;
   background: #1b1b1b;
 }
 
-.bg-screen-border {
-  background:
-    linear-gradient(
-      114deg,
-      rgba(255, 255, 255, 0.8) -2%,
-      rgba(255, 255, 255, 0) 2%,
-      rgba(255, 255, 255, 0) 94%,
-      rgba(255, 255, 255, 0.02) 105%
-    ),
-    linear-gradient(
-      104deg,
-      rgba(83, 88, 89, 0.6) 73%,
-      rgba(41, 43, 44, 0.6) 100%
-    );
+/* Pressed: the cap nears the deck, so only its drop shadow tightens. */
+.key:active .cap {
+  box-shadow:
+    inset 1px 1px 1px rgb(255 255 255 / 0.7),
+    inset -1px -1px 1px rgb(146 140 135 / 0.5),
+    1px 1px 2px #857e7c,
+    0 2px 3px rgb(130 124 122 / 0.4);
 }
 
-.bg-screen {
-  background: linear-gradient(138deg, #39393b 5%, #040608 96%);
+.key[aria-pressed='true'] {
+  --ink: #0d1114;
+}
+
+/* latched keys light an LED in the cell's corner, clear of any glyph */
+.key[aria-pressed='true']::after {
+  content: '';
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  background: #f24b00;
+  box-shadow: 0 0 4px rgb(242 75 0 / 0.6);
+}
+
+.key:focus-visible {
+  outline: none;
+}
+.key:focus-visible .cap {
+  outline: 2px solid #6f87ff;
+  outline-offset: 2px;
 }
 
 .bg-bump-mute {
@@ -333,6 +332,26 @@ button:active ~ .shadow-button {
     16px 16px 11px -2px rgba(45, 33, 29, 0.5),
     38px 38px 21px -2px rgba(45, 33, 29, 0.37),
     18px 18px 15px 8px rgba(45, 33, 29, 0.3);
+}
+
+.bg-screen-border {
+  background:
+    linear-gradient(
+      114deg,
+      rgba(255, 255, 255, 0.8) -2%,
+      rgba(255, 255, 255, 0) 2%,
+      rgba(255, 255, 255, 0) 94%,
+      rgba(255, 255, 255, 0.02) 105%
+    ),
+    linear-gradient(
+      104deg,
+      rgba(83, 88, 89, 0.6) 73%,
+      rgba(41, 43, 44, 0.6) 100%
+    );
+}
+
+.bg-screen {
+  background: linear-gradient(138deg, #39393b 5%, #040608 96%);
 }
 
 /*

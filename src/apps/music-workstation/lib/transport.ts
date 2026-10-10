@@ -7,24 +7,21 @@ import { DEFAULT_BPM, SCHEDULE_AHEAD_TIME, SCHEDULE_INTERVAL } from './common'
 // thing each sequencer supplies is `onStep`: play this step, return the index
 // to surface on the playhead (or -1 to leave it). Everything else is here.
 
-/** Play modes. forward/backward are shared; each sequencer adds its own third. */
-export const MODES = {
-  endless: ['forward', 'backward', 'shuffle'],
-  pattern: ['forward', 'backward', 'alternate'],
-} as const
+/** Play modes, shared by both step sequencers. */
+export const MODES = ['forward', 'backward', 'alternate', 'random'] as const
 
-export type Mode = (typeof MODES)[keyof typeof MODES][number]
+export type Mode = (typeof MODES)[number]
 
 /** Pick a mode from an unbounded knob value that wraps through the list. */
-export function modeAt(list: readonly Mode[], knob: number): Mode {
-  const turns = Math.floor(knob * list.length)
-  return list[((turns % list.length) + list.length) % list.length]
+export function modeAt(knob: number): Mode {
+  const n = MODES.length
+  return MODES[((Math.floor(knob * n) % n) + n) % n]
 }
 
 type Timing = { division: number; swing: number }
 type Stepper = (mode: Mode, count: number, length: number) => number
 
-/** Index progression for a step counter. Holds shuffle's anti-repeat memory. */
+/** Index progression for a step counter. Holds random's anti-repeat memory. */
 function createStepper(): Stepper {
   let lastPick = -1
   return (mode, count, length) => {
@@ -38,7 +35,7 @@ function createStepper(): Stepper {
         const p = count % period
         return p < length ? p : period - p
       }
-      case 'shuffle': {
+      case 'random': {
         let i = Math.floor(Math.random() * length)
         if (i === lastPick) i = (i + 1) % length
         return (lastPick = i)
@@ -89,8 +86,8 @@ export function createSequencer(
     const { division, swing } = getTiming()
     const beat = (60 / DEFAULT_BPM) * (4 / division)
     while (nextTime < audioContext.currentTime + SCHEDULE_AHEAD_TIME) {
-      // 0.5 = straight; above delays off-beats, below advances them
-      const time = nextTime + (count % 2 ? (swing - 0.5) * beat : 0)
+      // swing = the long step's share of each pair: ½ is straight
+      const time = nextTime + (count % 2 ? (2 * swing - 1) * beat : 0)
       const value = onStep(next, count, time)
       if (value >= 0) head.push(value, time)
       count++

@@ -1,17 +1,4 @@
 import { Container } from 'src/components'
-import {
-  ArrowLeft,
-  ArrowRight,
-  Backspace,
-  Circle,
-  Download,
-  Grid,
-  Hexagon,
-  Pattern,
-  Play,
-  SpaceBar,
-  Square,
-} from 'src/icons'
 import { SAMPLES_PREFETCH } from 'src/lib/samples'
 import { generateHead } from 'src/lib/server'
 
@@ -24,7 +11,27 @@ import {
   Speaker,
   Volume,
 } from './components'
-import { api } from './lib'
+import {
+  BackGlyph,
+  ClearGlyph,
+  DIGITS,
+  TombolaGlyph,
+  ExportGlyph,
+  ForwardGlyph,
+  PatternGlyph,
+  PlayGlyph,
+  RecordGlyph,
+  RestGlyph,
+  StopGlyph,
+  DotsGlyph,
+} from './icons'
+import {
+  api,
+  type ParameterId,
+  type ScreenId,
+  type SoundName,
+  store,
+} from './lib'
 import { AppIcon, metadata } from './metadata'
 import styles from './styles.css?url'
 
@@ -35,7 +42,42 @@ export const { meta, links } = generateHead({
   links: SAMPLES_PREFETCH,
 })
 
+const SOUNDS: SoundName[] = ['piano', 'synth', 'musicbox', 'triangle', 'sine', 'marimba', 'kalimba', 'harp', 'recorder'] // prettier-ignore
+
+/** Sound keys 1–9; the selected one stays latched. */
+function SoundKey({ n, className }: { n: number; className?: string }) {
+  const sound = SOUNDS[n - 1]
+  const active = store.use((s) => s.sound === sound)
+  return (
+    <Button
+      text={sound}
+      icon={DIGITS[n - 1]}
+      active={active}
+      className={className}
+      onClick={() => api.setSound(sound)}
+    />
+  )
+}
+
+function ScreenKey({ id, icon }: { id: ScreenId; icon: typeof PlayGlyph }) {
+  const active = store.use((s) => s.screen === id)
+  return (
+    <Button
+      text={`${id.toLowerCase()} sequencer`}
+      icon={icon}
+      active={active}
+      onClick={() => api.show(id)}
+    />
+  )
+}
+
+const PARAMETERS: ParameterId[] = ['blue', 'brown', 'gray', 'orange']
+
 export default function App() {
+  const playing = store.use((s) => s.playing)
+  const recording = store.use((s) => s.recordStart > 0)
+
+  // The deck is an auto-placed grid: source order is layout order.
   return (
     <Container
       id={metadata.id}
@@ -44,87 +86,65 @@ export default function App() {
 
       <Frame>
         <Speaker />
-
         <Volume onChange={api.changeVolume} onMute={api.muteVolume} />
         <Screen />
-        <Parameter
-          variant='blue'
-          onChange={(delta) => api.changeParameter({ id: 'blue', delta })}
-        />
-        <Parameter
-          variant='brown'
-          onChange={(delta) => api.changeParameter({ id: 'brown', delta })}
-        />
-        <Parameter
-          variant='gray'
-          onChange={(delta) => api.changeParameter({ id: 'gray', delta })}
-        />
-        <Parameter
-          variant='orange'
-          onChange={(delta) => api.changeParameter({ id: 'orange', delta })}
-        />
+        {PARAMETERS.map((id) => (
+          <Parameter
+            key={id}
+            variant={id}
+            onChange={(delta) => api.changeParameter({ id, delta })}
+          />
+        ))}
+
+        <ScreenKey id='TOMBOLA' icon={TombolaGlyph} />
+        <ScreenKey id='ENDLESS' icon={DotsGlyph} />
+        <ScreenKey id='PATTERN' icon={PatternGlyph} />
 
         <Button
-          text='Tombola Sequencer'
-          icon={Hexagon}
-          onClick={() => api.show('TOMBOLA')}
-        />
-        <Button
-          text='Endless Sequencer'
-          icon={Pattern}
-          onClick={() => api.show('ENDLESS')}
-        />
-        <Button
-          text='Pattern Sequencer'
-          icon={Grid}
-          onClick={() => api.show('PATTERN')}
-        />
-        <Button
-          text='Left'
-          icon={ArrowLeft}
+          text='back'
+          icon={BackGlyph}
           onClick={() => api.control('left')}
         />
         <Button
-          text='Right'
-          icon={ArrowRight}
+          text='forward'
+          icon={ForwardGlyph}
           onClick={() => api.control('right')}
         />
-        <Button text='Play' icon={Play} onClick={() => api.control('play')} />
-        <Button text='Record' icon={Circle} onClick={api.record} />
-        <Button text='Stop' icon={Square} onClick={api.stopRecording} />
-        <Button text='Download' icon={Download} onClick={api.download} />
         <Button
-          text='Space'
-          icon={SpaceBar}
+          text='play'
+          icon={PlayGlyph}
+          active={playing}
+          onClick={() => api.control('play')}
+        />
+        <Button
+          text='record'
+          icon={RecordGlyph}
+          active={recording}
+          onClick={api.record}
+        />
+        <Button text='stop' icon={StopGlyph} onClick={api.stop} />
+        <Button text='export take' icon={ExportGlyph} onClick={api.download} />
+        <Button
+          text='rest'
+          icon={RestGlyph}
           onClick={() => api.control('space')}
         />
         <Button
-          text='Delete'
-          icon={Backspace}
+          text='clear'
+          icon={ClearGlyph}
           onClick={() => api.control('delete')}
         />
-        <Button text='1' onClick={() => api.setSound('piano')} />
-        <Button text='2' onClick={() => api.setSound('synth')} />
-        <Button text='3' onClick={() => api.setSound('musicbox')} />
+
+        <SoundKey n={1} />
+        <SoundKey n={2} />
+        <SoundKey n={3} />
         <Keyboard />
-        <Button
-          text='4'
-          className='row-start-9'
-          onClick={() => api.setSound('triangle')}
-        />
-        <Button
-          text='5'
-          className='row-start-9'
-          onClick={() => api.setSound('sine')}
-        />
-        <Button
-          text='6'
-          className='row-start-9'
-          onClick={() => api.setSound('marimba')}
-        />
-        <Button text='7' onClick={() => api.setSound('kalimba')} />
-        <Button text='8' onClick={() => api.setSound('harp')} />
-        <Button text='9' onClick={() => api.setSound('recorder')} />
+        <SoundKey n={4} className='row-start-9' />
+        <SoundKey n={5} className='row-start-9' />
+        <SoundKey n={6} className='row-start-9' />
+        <SoundKey n={7} />
+        <SoundKey n={8} />
+        <SoundKey n={9} />
       </Frame>
     </Container>
   )

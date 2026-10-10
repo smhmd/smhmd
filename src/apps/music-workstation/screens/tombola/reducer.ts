@@ -12,6 +12,10 @@ export const knobs: KnobMap = {
 export const attack = (_: State, note: string) => void tombola.add(note)
 
 export const controls: Controls = {
-  // Empty the cage; everything else is a no-op on this screen.
-  reset: () => void tombola.clear(),
+  // play swings the rods open to release the notes, and closed again
+  play: ({ rods }) => ({ rods: rods > 0.5 ? 0 : 1 }),
+  // scissors takes out the last note dropped in
+  delete: () => void tombola.balls.pop(),
+  left: ({ spin }) => ({ spin: Math.max(-10, Math.round(spin) - 1) }),
+  right: ({ spin }) => ({ spin: Math.min(10, Math.round(spin) + 1) }),
 }

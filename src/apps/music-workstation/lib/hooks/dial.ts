@@ -1,106 +1,60 @@
-import { useCallback, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 
-import { PI } from 'src/lib/math'
+import { PI, TAU } from 'src/lib/math'
 
-type UseDialProps = {
-  /** Called with the rotation delta in turns (+1 = one full clockwise revolution). */
-  onChange?(delta: number): void
-}
+const STEP = 1 / 48 // one arrow-key nudge, in turns
 
-// Calculate angle from center to pointer position
-const calculateAngle = (
-  event: MouseEvent | TouchEvent,
-  element: HTMLElement,
-): number => {
-  const rect = element.getBoundingClientRect()
-  const centerX = rect.left + rect.width / 2
-  const centerY = rect.top + rect.height / 2
-
-  let clientX: number, clientY: number
-
-  if ('touches' in event && event.touches.length > 0) {
-    clientX = event.touches[0].clientX
-    clientY = event.touches[0].clientY
-  } else if ('clientX' in event) {
-    clientX = event.clientX
-    clientY = event.clientY
-  } else {
-    return 0 // Fallback
-  }
-
-  const x = clientX - centerX
-  const y = clientY - centerY
-
-  return (Math.atan2(y, x) * (180 / PI) + 360) % 360
+const angle = (e: React.PointerEvent<HTMLElement>) => {
+  const r = e.currentTarget.getBoundingClientRect()
+  return Math.atan2(
+    e.clientY - r.top - r.height / 2,
+    e.clientX - r.left - r.width / 2,
+  )
 }
 
 /**
- * An endless rotary encoder: the dial spins forever in either direction and
- * only reports how far it moved. Whoever listens (the store) owns the
- * value, its range, and its clamping.
+ * An endless rotary encoder. Drag around it, scroll over it, or use the
+ * arrow keys; it only reports how far it turned (+1 = one clockwise turn).
+ * Whoever listens owns the value, its range and its clamping.
  */
-export function useDial({ onChange }: UseDialProps = {}) {
+export function useDial(onChange?: (delta: number) => void) {
   const [rotation, setRotation] = useState(0)
-  const dialRef = useRef<HTMLButtonElement>(null)
-  const prevAngleRef = useRef<number | null>(null)
+  const last = useRef<number | null>(null)
 
-  const updateRotation = useCallback(
-    (e: MouseEvent | TouchEvent): void => {
-      if (!dialRef.current || prevAngleRef.current === null) return
-
-      const currentAngle = calculateAngle(e, dialRef.current)
-      let delta = currentAngle - prevAngleRef.current
-
-      // Handle crossing the 0/360 boundary
-      if (delta > 180) delta -= 360
-      if (delta < -180) delta += 360
-
-      setRotation((prev) => prev + delta)
-      onChange?.(delta / 360)
-
-      prevAngleRef.current = currentAngle
-    },
-    [onChange],
-  )
-
-  const startDragging = useCallback(
-    (event: React.MouseEvent | React.TouchEvent): void => {
-      event.preventDefault()
-      if (!dialRef.current) return
-
-      prevAngleRef.current = calculateAngle(
-        event.nativeEvent as MouseEvent | TouchEvent,
-        dialRef.current,
-      )
-
-      const handleMouseMove = (e: MouseEvent) => updateRotation(e)
-      const handleTouchMove = (e: TouchEvent) => {
-        e.preventDefault()
-        updateRotation(e)
-      }
-      const endDragging = () => {
-        document.removeEventListener('mousemove', handleMouseMove)
-        document.removeEventListener('mouseup', endDragging)
-        document.removeEventListener('touchmove', handleTouchMove)
-        document.removeEventListener('touchend', endDragging)
-        document.removeEventListener('touchcancel', endDragging)
-        prevAngleRef.current = null
-      }
-
-      document.addEventListener('mousemove', handleMouseMove)
-      document.addEventListener('mouseup', endDragging)
-      document.addEventListener('touchmove', handleTouchMove, {
-        passive: false,
-      })
-      document.addEventListener('touchend', endDragging)
-      document.addEventListener('touchcancel', endDragging)
-    },
-    [updateRotation],
-  )
-
-  return {
-    ref: dialRef,
-    drag: startDragging,
-    rotation,
+  const turn = (delta: number) => {
+    setRotation((r) => r + delta * 360)
+    onChange?.(delta)
   }
+  const release = () => void (last.current = null)
+
+  const handlers = {
+    onPointerDown(e: React.PointerEvent<HTMLElement>) {
+      e.currentTarget.setPointerCapture(e.pointerId)
+      last.current = angle(e)
+    },
+    onPointerMove(e: React.PointerEvent<HTMLElement>) {
+      if (last.current === null) return
+      const a = angle(e)
+      let delta = a - last.current
+      if (delta > PI) delta -= TAU // crossed the ±180° seam
+      if (delta < -PI) delta += TAU
+      last.current = a
+      turn(delta / TAU)
+    },
+    onPointerUp: release,
+    onPointerCancel: release,
+    onWheel(e: React.WheelEvent) {
+      turn(-e.deltaY / 1500)
+    },
+    onKeyDown(e: React.KeyboardEvent) {
+      const dir = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[
+        e.key
+      ]
+      if (!dir) return
+      e.preventDefault()
+      turn(dir * STEP)
+    },
+  }
+
+  return { rotation, handlers }
 }

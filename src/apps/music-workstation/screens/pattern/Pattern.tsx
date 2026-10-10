@@ -1,119 +1,82 @@
-import clsx from 'clsx'
-
-import { Hud, Item } from '../../components/Hud'
+import { Hud, Item, ModeMark } from '../../components/Hud'
 import {
   COLORS,
-  modeAt,
-  MODES,
+  HIGHEST,
+  LOWEST,
+  midi,
   patternWindow,
   STEPS,
   store,
   useTransport,
 } from '../../lib'
-import { pattern } from './sequencer'
+import { pattern, patternSettings } from './sequencer'
 
-// Screen-local palette; the readout colors come from the shared theme.
-const DIM = '#5a6a72' // the always-present full-grid silhouette
-const LIT = '#bfe9ef' // the active window, lit over the silhouette
-const CURSOR = '#3b6cff' // the working column
-const NOTE_IN = '#f2d35c' // a note inside the window (will play)
-const NOTE_OUT = '#dfe8ec' // a note parked outside the window
-const ARROW = '#ffffff'
+// A dot matrix: 16 steps across, one row per key (chromatic) up. Every
+// empty slot is a tiny dot; the active window lights its dots; notes are
+// round marks on top. Circles stay round: the viewBox scales uniformly.
+const W = 480
+const H = 160
+const PAD = 16
+const ROWS = HIGHEST - LOWEST + 1
+const DX = (W - 2 * PAD) / (STEPS - 1)
+const DY = (H - 2 * PAD) / (ROWS - 1)
+const x = (step: number) => PAD + step * DX
+const y = (note: string) => H - PAD - (midi(note) - LOWEST) * DY
 
-// The viewBox matches the graphics area below the HUD band; strokes are
-// non-scaling, so nothing blurs as it stretches.
-const W = 500
-const H = 240
-const PAD_X = 16
-const TOP = 12
-const GRID_H = H - TOP - 20 // room for the cursor arrow beneath
-const COLS = STEPS + 1 // 16 steps + the decorative trailing column
-const CELL_W = (W - 2 * PAD_X) / COLS
+const DIM = '#34312e' // slots outside the window
+const LIT = '#6f6b66' // slots inside it
+const BEAT = '#b3afa9' // the downbeats inside it, every 4 steps
+const NOTE_IN = '#f2efe9'
+const NOTE_OUT = '#5d5955'
 
-// White keys are the grid's rows; black keys sit on the half-lanes between them.
-const WHITE = ['F3', 'G3', 'A3', 'B3', 'C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5', 'D5', 'E5'] // prettier-ignore
-const MAX_LANE = WHITE.length - 1
-const RADIUS = Math.min(CELL_W, GRID_H / MAX_LANE) * 0.28
-
-const laneOf = (note: string) =>
-  note.includes('#')
-    ? WHITE.indexOf(note[0] + note.slice(-1)) + 0.5
-    : WHITE.indexOf(note)
-
-const vx = (c: number) => PAD_X + c * CELL_W // column boundary line
-const cx = (s: number) => PAD_X + (s + 0.5) * CELL_W // step-cell center
-const ly = (lane: number) => TOP + (1 - lane / MAX_LANE) * GRID_H
-
-/** Column lines c0..c1 plus the lane lines spanning them, as one path. */
-function gridPath(c0: number, c1: number) {
+/** Dots as zero-length round-capped strokes, so a whole set is one path. */
+const dots = (from: number, to: number, beatsOnly = false) => {
   let d = ''
-  for (let c = c0; c <= c1; c++) d += `M${vx(c)} ${TOP}V${TOP + GRID_H}`
-  for (let l = 0; l <= MAX_LANE; l++) d += `M${vx(c0)} ${ly(l)}H${vx(c1)}`
+  for (let c = from; c < to; c++) {
+    if (beatsOnly && c % 4) continue
+    for (let r = 0; r < ROWS; r++) d += `M${x(c)} ${PAD + r * DY}h0`
+  }
   return d
 }
+const MATRIX = dots(0, STEPS)
 
-const SILHOUETTE = gridPath(0, COLS)
-
-/** SVG: the full grid stays put; the window is a lit region within it. */
 function Grid() {
   const context = store.use()
   const { grid, cursor, playing } = context
   const { len, off } = patternWindow(context)
-
   // Mounted exactly while on-screen, so it owns the transport.
   const head = useTransport(pattern, playing)
   const active = playing ? Math.max(off, head) : cursor
-  const ax = cx(active)
-  const ay = TOP + GRID_H + 5
+  const accent = playing ? COLORS.orange : COLORS.blue
 
   return (
     <svg
-      className='absolute inset-0 size-full'
+      className='absolute inset-0 size-full will-change-transform'
       viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio='none'>
-      {/* Silhouette — the whole grid, always visible */}
-      <path
-        d={SILHOUETTE}
-        fill='none'
-        stroke={DIM}
-        strokeOpacity={0.55}
-        vectorEffect='non-scaling-stroke'
-      />
-
-      {/* Cursor column (follows the sounding column while playing) */}
-      <rect
-        x={vx(active)}
-        y={TOP}
-        width={CELL_W}
-        height={GRID_H}
-        fill={CURSOR}
-        fillOpacity={0.4}
-      />
-
-      {/* Window — the active region, lit on top of the silhouette */}
-      <path
-        d={gridPath(off, off + len)}
-        fill='none'
-        stroke={LIT}
-        strokeOpacity={0.9}
-        vectorEffect='non-scaling-stroke'
-      />
-
-      {/* Notes — every placed note shows; yellow inside the window, white outside */}
-      {grid.flatMap((column, s) =>
+      fill='none'
+      strokeLinecap='round'
+      aria-hidden>
+      <path d={MATRIX} stroke={DIM} strokeWidth={1.5} />
+      <path d={dots(off, off + len)} stroke={LIT} strokeWidth={1.5} />
+      <path d={dots(off, off + len, true)} stroke={BEAT} strokeWidth={1.5} />
+      <path d={dots(active, active + 1)} stroke={accent} strokeWidth={2} />
+      {grid.flatMap((column, step) =>
         column.map((note) => (
           <circle
-            key={`${s}:${note}`}
-            cx={cx(s)}
-            cy={ly(laneOf(note))}
-            r={RADIUS}
-            fill={s >= off && s < off + len ? NOTE_IN : NOTE_OUT}
+            key={`${step}${note}`}
+            cx={x(step)}
+            cy={y(note)}
+            r={step === active && playing ? 4.5 : 3.5}
+            fill={
+              step === active && playing
+                ? COLORS.orange
+                : step >= off && step < off + len
+                  ? NOTE_IN
+                  : NOTE_OUT
+            }
           />
         )),
       )}
-
-      {/* Cursor arrow */}
-      <path d={`M${ax} ${ay}l-5 7h10Z`} fill={ARROW} />
     </svg>
   )
 }
@@ -121,8 +84,7 @@ function Grid() {
 /** Window + groove + play-mode readouts. */
 function Readout() {
   const context = store.use()
-  const { len, off } = patternWindow(context)
-  const mode = modeAt(MODES.pattern, context.playMode)
+  const { len, off, swing, mode } = patternSettings(context)
 
   return (
     <Hud>
@@ -130,17 +92,12 @@ function Readout() {
         {off}
       </Item>
       <Item color={COLORS.brown} label='swing'>
-        {Math.round(context.swing * 100)}%
+        {swing.label}
       </Item>
       <Item color={COLORS.gray} label='trim'>
         {len}
       </Item>
-      <Item color={COLORS.orange}>
-        <span
-          className={clsx(mode === 'backward' && 'inline-block -scale-x-100')}>
-          {mode === 'forward' ? '←' : mode === 'backward' ? 'R' : '⇄'}
-        </span>
-      </Item>
+      <ModeMark mode={mode} />
     </Hud>
   )
 }

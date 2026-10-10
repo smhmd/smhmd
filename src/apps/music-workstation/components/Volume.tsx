@@ -10,18 +10,16 @@ type VolumeProps = {
 }
 
 export function Volume({ onChange, onMute }: VolumeProps) {
-  const { ref, drag, rotation } = useDial({ onChange })
+  const { rotation, handlers } = useDial(onChange)
   const muted = store.use(({ muted }) => muted)
 
   return (
-    <Base className='col-span-2 row-span-4 *:grid-rows-2'>
+    <Base className='col-span-2 row-span-4 grid-rows-2'>
       <button
         role='slider'
-        data-name='volume-knob'
+        aria-label='volume'
         className='relative aspect-square cursor-grab active:cursor-grabbing'
-        ref={ref}
-        onMouseDown={drag}
-        onTouchStart={drag}
+        {...handlers}
         style={{ touchAction: 'none' }}>
         <div className='bg-volume-base absolute inset-2.5 rounded-full'>
           <div className='bg-volume-body-border absolute inset-0.5 rounded-full p-px'>
@@ -44,7 +42,7 @@ export function Volume({ onChange, onMute }: VolumeProps) {
       </button>
 
       <button
-        data-name='volume-mute'
+        aria-label='mute'
         aria-pressed={muted}
         onClick={onMute}
         className='relative aspect-square size-full cursor-pointer'>

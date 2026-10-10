@@ -40,9 +40,7 @@ export function Frame({ children, className, ...props }: FrameProps) {
         <div
           data-name='product-name'
           className='font-roboto text-product-name flex flex-col items-center gap-y-3.5 justify-self-end'>
-          <div className='vertical-rl scale-[-1] text-4xl font-light'>
-            OP&#8211;1
-          </div>
+          <div className='vertical-rl scale-[-1] text-4xl font-light'>SM-1</div>
           <div className='rounded-ms border-product-name border px-1.5 py-0.5 text-xs'>
             field
           </div>

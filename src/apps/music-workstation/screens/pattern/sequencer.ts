@@ -1,7 +1,7 @@
 import { audio } from '../../lib/audio'
-import { patternWindow } from '../../lib/common'
+import { patternWindow, pick, SWINGS } from '../../lib/common'
 import { store } from '../../lib/store'
-import { createSequencer, modeAt, MODES } from '../../lib/transport'
+import { createSequencer, modeAt } from '../../lib/transport'
 
 const DIVISION = 16 // a 16-step pattern runs in 16th notes
 
@@ -16,13 +16,16 @@ type Knobs = {
 export function patternSettings(context: Knobs) {
   return {
     ...patternWindow(context),
-    swing: context.swing,
-    mode: modeAt(MODES.pattern, context.playMode),
+    swing: pick(SWINGS, context.swing),
+    mode: modeAt(context.playMode),
   }
 }
 
 export const pattern = createSequencer(
-  () => ({ division: DIVISION, swing: store.get().swing }),
+  () => ({
+    division: DIVISION,
+    swing: patternSettings(store.get()).swing.ratio,
+  }),
   (next, count, time) => {
     const ctx = store.get()
     const { len, off, mode } = patternSettings(ctx)

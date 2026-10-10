@@ -4,14 +4,10 @@
  */
 
 export { default as Github } from './github.svg?react'
-export { default as Grid } from './grid.svg?react'
-export { default as Hexagon } from './hexagon.svg?react'
 export * from './instruments'
 export { default as LinkedIn } from './linkedin.svg?react'
-export { default as Pattern } from './pattern.svg?react'
 export { default as Twitter } from './twitter.svg?react'
 export { default as Sparkles } from '@material-icons/svg/svg/auto_awesome/round.svg?react'
-export { default as Backspace } from '@material-icons/svg/svg/backspace/round.svg?react'
 export { default as Bolt } from '@material-icons/svg/svg/bolt/round.svg?react'
 export { default as Chat } from '@material-icons/svg/svg/chat/round.svg?react'
 export { default as Check } from '@material-icons/svg/svg/check/round.svg?react'
@@ -34,7 +30,6 @@ export { default as AlertTriangle } from '@material-icons/svg/svg/report_problem
 export { default as Social } from '@material-icons/svg/svg/rss_feed/round.svg?react'
 export { default as Search } from '@material-icons/svg/svg/search/round.svg?react'
 export { default as Settings } from '@material-icons/svg/svg/settings/round.svg?react'
-export { default as SpaceBar } from '@material-icons/svg/svg/space_bar/round.svg?react'
 export { default as Square } from '@material-icons/svg/svg/square/round.svg?react'
 export { default as Back } from '@material-icons/svg/svg/subdirectory_arrow_left/round.svg?react'
 export { default as Upload } from '@material-icons/svg/svg/upload_file/round.svg?react'
