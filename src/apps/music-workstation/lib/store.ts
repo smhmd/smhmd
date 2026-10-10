@@ -58,6 +58,8 @@ export const api = {
   },
 
   record() {
+    // A second press would orphan the running MediaRecorder mid-take
+    if (store.get().recording) return
     takeRecorder().record()
     store.set({ recording: true })
   },

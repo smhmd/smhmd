@@ -83,6 +83,7 @@ export function useDial({ onChange }: UseDialProps = {}) {
         document.removeEventListener('mouseup', endDragging)
         document.removeEventListener('touchmove', handleTouchMove)
         document.removeEventListener('touchend', endDragging)
+        document.removeEventListener('touchcancel', endDragging)
         prevAngleRef.current = null
       }
 
@@ -92,6 +93,7 @@ export function useDial({ onChange }: UseDialProps = {}) {
         passive: false,
       })
       document.addEventListener('touchend', endDragging)
+      document.addEventListener('touchcancel', endDragging)
     },
     [updateRotation],
   )

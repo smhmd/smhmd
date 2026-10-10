@@ -57,10 +57,10 @@ export function Splash() {
       <div
         className={clsx(
           'fixed inset-0 py-16',
-          'flex flex-col items-center justify-center',
+          'grid grid-rows-[1fr_auto_1fr] justify-items-center',
           'uppercase text-white',
         )}>
-        <div className='flex flex-col items-center gap-y-12 text-center'>
+        <div className='row-start-2 flex flex-col items-center gap-y-12 text-center'>
           <Ornament />
 
           <div className='flex flex-col gap-y-4'>
@@ -83,7 +83,7 @@ export function Splash() {
           <Ornament className='-scale-y-100' />
         </div>
 
-        <div className='absolute inset-x-0 bottom-16 flex justify-center text-sm tracking-[0.3em]'>
+        <div className='row-start-3 self-end text-sm tracking-[0.3em]'>
           {ended ? (
             <p className='p-6'>COMPLETE</p>
           ) : (

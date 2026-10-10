@@ -134,6 +134,16 @@
     4px 4px 5px 0px #857e7c,
     1px 6px 8px 0px rgba(130, 124, 122, 0.5),
     3px 8px 6px 0px rgba(130, 124, 122, 0.3);
+  transition: box-shadow 80ms ease-out;
+}
+
+/* Pressed: the cap sinks toward the base, so its shadow tightens. */
+button:active ~ .shadow-button {
+  box-shadow:
+    0px 0px 1px rgba(225, 225, 225, 0.4),
+    2px 2px 3px 0px #857e7c,
+    1px 3px 4px 0px rgba(130, 124, 122, 0.5),
+    1px 4px 3px 0px rgba(130, 124, 122, 0.3);
 }
 
 .bg-button-top {

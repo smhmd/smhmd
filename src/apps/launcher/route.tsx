@@ -122,7 +122,7 @@ export default function Launcher() {
         </div>
 
         <div className='flex flex-col gap-1'>
-          <h1 className='text-[2.5cqh] font-semibold leading-tight tracking-tight'>
+          <h1 className='text-[2.5cqh] font-semibold leading-tight tracking-tight text-white'>
             Simo
           </h1>
           <p className='text-[1.5cqh] font-medium text-neutral-50/80'>

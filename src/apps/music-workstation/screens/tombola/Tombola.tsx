@@ -35,13 +35,7 @@ function Cage() {
       last = now
 
       // The store is the source of truth; the loop just reads it.
-      const { spin, gravity, bounce, rods: open } = store.get()
-      for (const { note, impact } of tombola.step(dt, {
-        spin,
-        gravity,
-        bounce,
-        rods: open,
-      })) {
+      for (const { note, impact } of tombola.step(dt, store.get())) {
         audio.play(note, Math.min(impact / 500, 1))
       }
 
@@ -50,7 +44,7 @@ function Cage() {
       for (let side = 0; side < SIDES; side++) {
         const line = rods.current[side]
         if (!line) continue
-        const { mx, my, dx, dy } = tombola.rodAt(side, open)
+        const { mx, my, dx, dy } = tombola.rodAt(side)
         line.setAttribute('x1', `${mx - dx * ROD_LENGTH}`)
         line.setAttribute('y1', `${my - dy * ROD_LENGTH}`)
         line.setAttribute('x2', `${mx + dx * ROD_LENGTH}`)

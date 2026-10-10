@@ -73,6 +73,7 @@ export const audio = {
   },
 
   setVolume(value: number) {
-    master.gain.value = value
+    // Glide instead of jumping, so dragging the knob or muting doesn't click
+    master.gain.setTargetAtTime(value, audioContext.currentTime, 0.015)
   },
 }
