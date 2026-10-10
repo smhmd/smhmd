@@ -30,6 +30,7 @@ export type Ball = {
   vx: number
   vy: number
   quiet: number // seconds until this ball may sound again
+  flash: number // 1 on a sounding hit, fading to 0 — drives the render
 }
 export type Hit = { note: string; impact: number }
 export type Params = {
@@ -55,11 +56,8 @@ export const tombola = {
       vx: Math.cos(direction) * 60,
       vy: Math.sin(direction) * 60,
       quiet: 0,
+      flash: 0,
     })
-  },
-
-  clear() {
-    this.balls.length = 0
   },
 
   /** Midpoint and direction of one rod — shared by physics and rendering. */
@@ -96,11 +94,15 @@ export const tombola = {
     const substeps = clamp(1, Math.ceil(travel / MAX_TRAVEL), MAX_SUBSTEPS)
     const h = dt / substeps
 
-    for (const ball of this.balls) ball.quiet -= dt
+    for (const ball of this.balls) {
+      ball.quiet -= dt
+      ball.flash = Math.max(0, ball.flash - dt * 5)
+    }
 
     const hit = (ball: Ball, impact: number) => {
       if (impact <= MIN_IMPACT || ball.quiet > 0) return
       ball.quiet = HIT_COOLDOWN
+      ball.flash = 1
       hits.push({ note: ball.note, impact })
     }
 

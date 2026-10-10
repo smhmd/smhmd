@@ -25,15 +25,14 @@ const variants = {
 } as const
 
 export function Parameter({ variant, onChange }: ParameterProps) {
-  const { ref, drag, rotation } = useDial({ onChange })
+  const { rotation, handlers } = useDial(onChange)
   return (
     <Base className='**:aspect-square col-span-4 row-span-4 aspect-square'>
       <button
         className='cursor-grab active:cursor-grabbing'
         role='slider'
-        ref={ref}
-        onMouseDown={drag}
-        onTouchStart={drag}>
+        aria-label={variant}
+        {...handlers}>
         <div className='bg-parameter-bed absolute inset-8 rounded-full'>
           <div className='bg-parameter-base absolute inset-0.5 rounded-full'>
             <div className='bg-parameter-body-border inset-4.5 absolute rounded-full p-px'>

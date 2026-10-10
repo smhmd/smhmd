@@ -1,5 +1,7 @@
 import { clamp } from 'src/lib/math'
 
+import type { SoundName } from './audio'
+
 export const APP_ID = 'music-workstation'
 export const STEPS = 16
 export const DEFAULT_BPM = 120
@@ -14,9 +16,11 @@ export type ScreenId = 'TOMBOLA' | 'ENDLESS' | 'PATTERN'
 /** Default state. Shared by the store and the audio graph. */
 export const INITIAL = {
   screen: 'TOMBOLA' as ScreenId,
-  volume: 0.8, // 0..1
+  volume: 0.6, // 0..1
   muted: false,
-  recording: false,
+  sound: 'piano' as SoundName,
+  recordStart: 0, // performance.now() when the take started; 0 = not recording
+  take: 0, // last take's length in seconds; 0 = none yet
   // tombola
   spin: 1, // -10..10, 0 = no rotation
   gravity: 0.5, // 0..1
@@ -24,7 +28,7 @@ export const INITIAL = {
   rods: 0, // 0..1, 0 = closed hexagon, 1 = rods fully rotated open
   // endless (swing / playMode / playing are shared with pattern)
   division: 0, // 0..1 → 1/4 … 1/16
-  swing: 0.5, // 0..1, 0.5 = straight
+  swing: 0, // 0..1 → SWINGS preset, 0 = straight
   gate: 0, // 0..1 → gate pattern index
   playMode: 0, // unbounded, wraps through the active screen's play modes
   sequence: [] as Step[],
@@ -66,7 +70,7 @@ export type KnobMap = Record<ParameterId, KnobEntry>
 
 /** Transport/edit buttons routed to the active screen. Buttons with no
  * binding on the current screen are no-ops. */
-export type ControlId = 'left' | 'right' | 'play' | 'delete' | 'reset' | 'space'
+export type ControlId = 'left' | 'right' | 'play' | 'delete' | 'space'
 export type Controls = Partial<Record<ControlId, (state: State) => Patch>>
 
 /**
@@ -85,6 +89,33 @@ export function patternWindow({
   const off = clamp(0, Math.round(offset), STEPS - len)
   return { len, off }
 }
+
+/** A list entry from a 0..1 knob value. */
+export const pick = <T>(list: readonly T[], value: number) =>
+  list[Math.min(Math.floor(value * list.length), list.length - 1)]
+
+/**
+ * Swing as the classic long:short ratio of each pair of steps — from
+ * straight, through the triplet shuffle, to a dotted lilt.
+ */
+export const SWINGS = [
+  { label: '1:1', ratio: 1 / 2 },
+  { label: '5:4', ratio: 5 / 9 },
+  { label: '3:2', ratio: 3 / 5 },
+  { label: '2:1', ratio: 2 / 3 },
+  { label: '3:1', ratio: 3 / 4 },
+] as const
+
+const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+
+/** MIDI number of a note name like 'F#3', and back. */
+export const midi = (note: string) =>
+  NAMES.indexOf(note.slice(0, -1)) + 12 * (Number(note.slice(-1)) + 1)
+export const noteName = (m: number) => NAMES[m % 12] + (Math.floor(m / 12) - 1)
+
+/** The keyboard's range, as MIDI numbers. */
+export const LOWEST = midi('F3')
+export const HIGHEST = midi('E5')
 
 export const KEYS = [
   // Triplet keys:

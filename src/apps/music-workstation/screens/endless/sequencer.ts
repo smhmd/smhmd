@@ -1,6 +1,7 @@
 import { audio } from '../../lib/audio'
 import { store } from '../../lib/store'
-import { createSequencer, modeAt, MODES } from '../../lib/transport'
+import { pick, SWINGS } from '../../lib/common'
+import { createSequencer, modeAt } from '../../lib/transport'
 
 export const DIVISIONS = [4, 8, 16] // 1/4 … 1/16 per step
 
@@ -30,9 +31,6 @@ export const PATTERNS = [
   '0010010010010001',
 ]
 
-const pick = <T>(list: T[], value: number) =>
-  list[Math.min(Math.floor(value * list.length), list.length - 1)]
-
 type KnobValues = {
   division: number
   swing: number
@@ -44,14 +42,17 @@ type KnobValues = {
 export function settings({ division, swing, gate, playMode }: KnobValues) {
   return {
     division: pick(DIVISIONS, division),
-    swing,
+    swing: pick(SWINGS, swing),
     pattern: pick(PATTERNS, gate),
-    mode: modeAt(MODES.endless, playMode),
+    mode: modeAt(playMode),
   }
 }
 
 export const endless = createSequencer(
-  () => settings(store.get()),
+  () => {
+    const { division, swing } = settings(store.get())
+    return { division, swing: swing.ratio }
+  },
   (next, count, time) => {
     const ctx = store.get()
     if (!ctx.sequence.length) return -1

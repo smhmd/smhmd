@@ -10,7 +10,6 @@ export const metadata: AppMetadata = {
   type: 'music',
   Icon: AppIcon,
   dark: false,
-  wip: true,
 }
 
 export function AppIcon(props: React.ComponentProps<typeof IconFrame>) {
