@@ -1,4 +1,6 @@
 allowBuilds:
   esbuild: true
-  sharp: set this to true or false
+  onnxruntime-node: true
+  protobufjs: true
+  sharp: true
   workerd: true

@@ -1,4 +1,5 @@
 import { metadata as _2048 } from './2048/metadata'
+import { metadata as _3dSegmenter } from './3d-segmenter/metadata'
 import { metadata as aboutMe } from './about-me/metadata'
 import { metadata as diceRoll } from './dice-roll/metadata'
 import { metadata as keylimba } from './keylimba/metadata'
@@ -14,6 +15,7 @@ export const apps = {
   keylimba,
   magnetize,
   'monument-valley': monumentValley,
+  '3d-segmenter': _3dSegmenter,
   'spinning-tops': spinningTops,
   'music-workstation': musicWorkstation,
 }
@@ -30,6 +32,7 @@ export const appIDs: AppID[] = [
   'magnetize',
   'spinning-tops',
   'music-workstation',
+  '3d-segmenter',
 ]
 
 export const appGrid: AppGridArray = appIDs
