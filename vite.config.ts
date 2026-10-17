@@ -20,6 +20,8 @@ export default defineConfig({
     noExternal: ['@react-three/drei', '@react-three/rapier'],
   },
   optimizeDeps: {
+    // Only workers import it, and workers aren't scanned.
+    include: ['@huggingface/transformers'],
     exclude: ['@react-three/rapier'],
   },
 })

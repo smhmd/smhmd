@@ -54,13 +54,13 @@ test('the preview comes back once the camera settles', async ({ page }) => {
   await expect.poll(() => previewed(page)).toBeGreaterThan(0)
 })
 
-test('holding Ctrl hides the preview, releasing brings it back', async ({
+test('holding the hand key hides the preview, releasing brings it back', async ({
   page,
 }) => {
   const box = await on(page, 'Cracker box')
   await page.mouse.move(box.x, box.y)
-  await page.keyboard.down('Control')
+  await page.keyboard.down('ControlOrMeta')
   expect(await previewed(page)).toBe(0)
-  await page.keyboard.up('Control')
+  await page.keyboard.up('ControlOrMeta')
   expect(await previewed(page)).toBeGreaterThan(0)
 })

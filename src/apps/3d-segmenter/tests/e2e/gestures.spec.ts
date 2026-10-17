@@ -79,7 +79,7 @@ test('the ring follows the pointer, stays put over controls to show resizing, su
   expect(await ring(page)).not.toBeNull()
 })
 
-test('Ctrl turns any tool into the hand: dragging orbits instead of painting', async ({
+test('the hand key (⌘ or Ctrl) turns any tool into the hand: dragging orbits instead of painting', async ({
   page,
 }) => {
   const at = await on(page, 'Cracker box')
@@ -90,12 +90,12 @@ test('Ctrl turns any tool into the hand: dragging orbits instead of painting', a
     }))
   const before = await view()
   await page.mouse.move(at.x, at.y)
-  await page.keyboard.down('Control')
+  await page.keyboard.down('ControlOrMeta')
   await expect(page.locator('body')).toHaveAttribute('data-hand', '')
   await page.mouse.down()
   await page.mouse.move(at.x + 120, at.y, { steps: 6 })
   await page.mouse.up()
-  await page.keyboard.up('Control')
+  await page.keyboard.up('ControlOrMeta')
   await expect(page.locator('body')).not.toHaveAttribute('data-hand')
   expect(await labeled(page)).toBe(0)
   const after = await view()
@@ -104,11 +104,13 @@ test('Ctrl turns any tool into the hand: dragging orbits instead of painting', a
   expect(after.target).toEqual(before.target)
 })
 
-test('Ctrl with another key is a shortcut, not the hand', async ({ page }) => {
-  await page.keyboard.down('Control')
+test('the hand key with another key is a shortcut, not the hand', async ({
+  page,
+}) => {
+  await page.keyboard.down('ControlOrMeta')
   await page.keyboard.press('z')
   await expect(page.locator('body')).not.toHaveAttribute('data-hand')
-  await page.keyboard.up('Control')
+  await page.keyboard.up('ControlOrMeta')
 })
 
 test('shading is one mode at a time; T and W toggle back to solid', async ({
