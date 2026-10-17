@@ -19,7 +19,13 @@ export const ui = createStore({
   part: -1,
   hover: -1,
   status: 'loading' as Status,
-  progress: 0,
+  /** EdgeTAM's download so far, in bytes. */
+  loaded: 0,
+  total: 0,
+  /** The file being opened, for the status. */
+  opening: '',
+  /** A passing error for the status, like a file that couldn't be opened. */
+  notice: '',
   /** A Smart Select session is live: further clicks refine it, esc undoes it. */
   selecting: false,
   past: 0,
@@ -55,3 +61,12 @@ export const prompts = createStore({
   points: [] as Point[],
   box: null as Box | null,
 })
+
+let timer: ReturnType<typeof setTimeout> | undefined
+
+/** Shows a passing error in the status for a few seconds. */
+export function notify(notice: string) {
+  clearTimeout(timer)
+  ui.set({ notice })
+  timer = setTimeout(() => ui.set({ notice: '' }), 5000)
+}

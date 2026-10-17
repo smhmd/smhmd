@@ -1,6 +1,6 @@
 import type { Box, Point } from './common'
 import type { Reply, Request } from './sam.worker'
-import { ui } from './state'
+import { notify, ui } from './state'
 import { view } from './view'
 
 /**
@@ -28,12 +28,16 @@ export const sam = {
     worker.onmessage = ({ data: reply }: MessageEvent<Reply>) => {
       switch (reply.type) {
         case 'progress':
-          return ui.set({ progress: reply.value })
+          return ui.set({ loaded: reply.loaded, total: reply.total })
         case 'ready':
           ready = true
           return on.ready()
+        // Loading lasts through the first view's encoding, so the status says one thing until it's usable.
         case 'encoded':
-          if (reply.id === viewId && ui.get().status === 'encoding')
+          if (
+            reply.id === viewId &&
+            ['loading', 'encoding'].includes(ui.get().status)
+          )
             ui.set({ status: 'ready' })
           return
         case 'mask':
@@ -41,7 +45,9 @@ export const sam = {
           return
         case 'error':
           console.error(reply.message)
-          return ui.set({ status: 'error' })
+          if (reply.fatal) return ui.set({ status: 'error' })
+          notify('Smart Select failed on this view · try again')
+          return ui.set({ status: 'ready' })
       }
     }
     send({ type: 'load' })
@@ -51,11 +57,11 @@ export const sam = {
     worker?.terminate()
     worker = undefined
     ready = false
-    ui.set({ status: 'loading', progress: 0 })
+    ui.set({ status: 'loading', loaded: 0, total: 0 })
   },
 
   moved() {
-    if (ready) ui.set({ status: 'moving' })
+    if (ready && ui.get().status !== 'loading') ui.set({ status: 'moving' })
   },
 
   /** Encodes the last captured frame: the expensive half, once per view. */
@@ -65,7 +71,7 @@ export const sam = {
     viewId++
     const { data, width, height } = frame
     send({ type: 'encode', id: viewId, data, width, height })
-    ui.set({ status: 'encoding' })
+    if (ui.get().status !== 'loading') ui.set({ status: 'encoding' })
   },
 
   decode(points: Point[], box: Box | null) {

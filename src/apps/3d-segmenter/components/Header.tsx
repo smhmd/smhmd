@@ -4,7 +4,7 @@ import clsx from 'clsx'
 
 import { Download, Upload } from 'src/icons'
 
-import { api } from '../lib'
+import { api, FORMATS } from '../lib'
 import { Toolbar } from './Toolbar'
 import { glass, Tip } from './ui'
 
@@ -39,7 +39,7 @@ export function Actions({ className }: { className?: string }) {
       <input
         ref={input}
         type='file'
-        accept='.glb,.gltf,.obj,.ply,.stl'
+        accept={FORMATS.map((f) => `.${f}`).join()}
         hidden
         onChange={(e) => {
           const file = e.target.files?.[0]

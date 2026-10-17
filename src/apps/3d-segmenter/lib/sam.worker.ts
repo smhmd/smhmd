@@ -21,11 +21,12 @@ export type Request =
   | { type: 'decode'; id: number; points: Point[]; box: Box | null }
 
 export type Reply =
-  | { type: 'progress'; value: number }
+  | { type: 'progress'; loaded: number; total: number }
   | { type: 'ready' }
   | { type: 'encoded'; id: number }
   | { type: 'mask'; id: number; mask: Uint8Array }
-  | { type: 'error'; message: string }
+  /** Fatal when the model never loaded; otherwise one view failed. */
+  | { type: 'error'; message: string; fatal: boolean }
 
 type GPU = { requestAdapter(): Promise<{ features: Set<string> } | null> }
 
@@ -39,14 +40,22 @@ const post = (reply: Reply) => (self as unknown as Worker).postMessage(reply)
 
 async function load() {
   const gpu = (navigator as Navigator & { gpu?: GPU }).gpu
-  const adapter = await gpu?.requestAdapter()
-  const device = adapter ? 'webgpu' : 'wasm'
-  const dtype = !adapter
-    ? 'q8'
-    : adapter.features.has('shader-f16')
-      ? 'fp16'
-      : 'fp32'
+  const adapter = await gpu?.requestAdapter().catch(() => null)
+  const f16 = adapter?.features.has('shader-f16')
+  try {
+    if (adapter) return await create('webgpu', f16 ? 'fp16' : 'fp32')
+  } catch (e) {
+    // Some GPUs advertise WebGPU but can't run the model: fall back to the CPU.
+    console.warn(e)
+  }
+  await create('wasm', 'q8')
+}
 
+async function create(
+  device: 'webgpu' | 'wasm',
+  dtype: 'fp16' | 'fp32' | 'q8',
+) {
+  // Bytes across every file; the total grows as each file starts.
   const files: Record<string, [number, number]> = {}
   const progress_callback: PretrainedModelOptions['progress_callback'] = (
     p,
@@ -56,8 +65,8 @@ async function load() {
     const all = Object.values(files)
     post({
       type: 'progress',
-      value:
-        all.reduce((s, [l]) => s + l, 0) / all.reduce((s, [, t]) => s + t, 0),
+      loaded: all.reduce((s, [l]) => s + l, 0),
+      total: all.reduce((s, [, t]) => s + t, 0),
     })
   }
 
@@ -71,11 +80,14 @@ async function load() {
       progress_callback,
     }) as Promise<Sam2Processor>,
   ])
-  post({ type: 'ready' })
 }
 
 async function handle(req: Request) {
-  if (req.type === 'load') return load()
+  if (req.type === 'load')
+    return load().then(
+      () => post({ type: 'ready' }),
+      (e) => post({ type: 'error', message: String(e), fatal: true }),
+    )
 
   if (req.type === 'encode') {
     inputs = await processor(
@@ -141,5 +153,5 @@ let queue = Promise.resolve()
 self.onmessage = ({ data }: MessageEvent<Request>) => {
   queue = queue
     .then(() => handle(data))
-    .catch((e) => post({ type: 'error', message: String(e) }))
+    .catch((e) => post({ type: 'error', message: String(e), fatal: false }))
 }

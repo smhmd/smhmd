@@ -3,6 +3,9 @@ import { Color } from 'three'
 export const APP_ID = '3d-segmenter'
 export const MODEL = 'onnx-community/EdgeTAM-ONNX'
 
+/** What Open and drop accept. */
+export const FORMATS = ['glb', 'gltf', 'obj', 'ply', 'stl']
+
 export const SAMPLE = {
   url: '/models/groceries.glb',
   credit: 'YCB Object and Model Set, CC BY 4.0',

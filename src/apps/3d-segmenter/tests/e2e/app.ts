@@ -4,18 +4,18 @@ declare global {
   interface Window {
     /** The app's lib, for driving and inspecting it; dev builds only. */
     m: typeof import('../../lib')
-    loading?: Promise<unknown>
   }
 }
 
 /**
  * Stands in for EdgeTAM: answers a box with the box, and points with a
- * square around each, so Smart Select runs without the model.
+ * square around each, so Smart Select runs without the model. `load` is
+ * what it does when asked to load; by default, it's ready at once.
  */
-const FAKE_MODEL = /* js */ `
+export const fakeModel = (load = `postMessage({ type: 'ready' })`) => /* js */ `
   let size
   onmessage = ({ data }) => {
-    if (data.type === 'load') postMessage({ type: 'ready' })
+    if (data.type === 'load') ${load}
     if (data.type === 'encode') {
       size = [data.width, data.height]
       postMessage({ type: 'encoded', id: data.id })
@@ -36,37 +36,18 @@ const FAKE_MODEL = /* js */ `
   }
 `
 
-/**
- * Opens the app on the sample, with the fake model, once the view is captured.
- * On a cold start Vite finds dependencies after the first load and reloads,
- * and that page can land on stale bundles and never load the model, so a
- * page that isn't ready in time is opened again.
- */
-export async function open(page: Page) {
+/** Opens the app on the sample, with the fake model, once the view is captured. */
+export async function open(page: Page, model = fakeModel()) {
   await page.route(/sam\.worker\.ts/, (route) =>
-    route.fulfill({ contentType: 'text/javascript', body: FAKE_MODEL }),
+    route.fulfill({ contentType: 'text/javascript', body: model }),
   )
-  for (let attempt = 1; ; attempt++) {
-    await page.goto('/3d-segmenter')
-    try {
-      return await page.waitForFunction(
-        (lib) => {
-          // A reload wipes `window.m`, so import the lib again whenever it's gone.
-          if (!window.m) {
-            window.loading ??= import(/* @vite-ignore */ lib)
-              .then((m) => (window.m = m))
-              .finally(() => (window.loading = undefined))
-            return false
-          }
-          return window.m.ui.get().mesh > 0 && !window.m.view.dirty
-        },
-        '/src/apps/3d-segmenter/lib/index.ts',
-        { timeout: 20_000 },
-      )
-    } catch (error) {
-      if (attempt === 3) throw error
-    }
-  }
+  await page.goto('/3d-segmenter')
+  await page.evaluate(async (lib) => {
+    window.m = await import(/* @vite-ignore */ lib)
+  }, '/src/apps/3d-segmenter/lib/index.ts')
+  await page.waitForFunction(
+    () => window.m.ui.get().mesh > 0 && !window.m.view.dirty,
+  )
 }
 
 /** Page coordinates of the visible vertex closest to the middle of a part. */

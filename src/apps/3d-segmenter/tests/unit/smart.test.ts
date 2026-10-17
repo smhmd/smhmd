@@ -65,7 +65,18 @@ describe('the model client', () => {
   test('loads the model, then encodes each view once', () => {
     expect(worker().sent.map((r) => r.type)).toEqual(['load', 'encode'])
     expect(handlers.ready).toHaveBeenCalled()
+    const { id } = worker().sent.at(-1) as { id: number }
+    worker().reply({ type: 'encoded', id })
+    expect(ui.get().status).toBe('ready')
+    sam.moved()
+    sam.encode()
     expect(ui.get().status).toBe('encoding')
+  })
+
+  test('loading lasts through the first view, through any orbiting', () => {
+    sam.moved()
+    sam.encode()
+    expect(ui.get().status).toBe('loading')
     const { id } = worker().sent.at(-1) as { id: number }
     worker().reply({ type: 'encoded', id })
     expect(ui.get().status).toBe('ready')
@@ -81,13 +92,36 @@ describe('the model client', () => {
     expect(handlers.mask).toHaveBeenCalledOnce()
   })
 
-  test('an error says so', () => {
-    worker().reply({ type: 'error', message: 'no WebGPU' })
+  test('a model that never loads says so', () => {
+    worker().reply({ type: 'error', message: 'offline', fatal: true })
     expect(ui.get().status).toBe('error')
+  })
+
+  test('one failed view is a passing notice, not a broken model', () => {
+    worker().reply({ type: 'error', message: 'out of memory', fatal: false })
+    expect(ui.get().status).toBe('ready')
+    expect(ui.get().notice).not.toBe('')
   })
 })
 
 describe('Smart Select', () => {
+  test('a box drawn before the model is ready waits, then runs', () => {
+    finish()
+    sam.stop()
+    sam.start(handlers)
+    smart.release!(...at(0.2, -0.2), { ...release, from: at(-0.2, 0.2) })
+    expect(prompts.get().box).not.toBeNull()
+    expect(worker().sent.some((r) => r.type === 'decode')).toBe(false)
+
+    worker().reply({ type: 'ready' })
+    smart.settled!()
+    expect(worker().sent.map((r) => r.type)).toEqual([
+      'load',
+      'encode',
+      'decode',
+    ])
+  })
+
   test('a dragged box is sent as a box, corners in order', () => {
     smart.release!(...at(0.2, -0.2), { ...release, from: at(-0.2, 0.2) })
     const decode = worker().sent.at(-1)

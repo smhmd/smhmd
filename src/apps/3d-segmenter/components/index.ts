@@ -1,3 +1,4 @@
+export * from './Drop'
 export * from './Header'
 export * from './Inspector'
 export * from './Sidebar'

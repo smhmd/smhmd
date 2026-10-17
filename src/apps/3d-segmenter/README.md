@@ -57,6 +57,8 @@ Faces are front-only everywhere, including the depth pass: to reach a back face,
 - **The model only runs in Smart Select**: the SAM Cam and encoding are skipped in other tools to save GPU time.
 - **Shading is one mode** (`ui.shading`): Solid, Textures or Wireframe. Wireframe keeps the surface as an invisible depth writer, so back edges stay hidden and the depth pass still sees the model.
 - **The gizmo takes its own presses**: gestures skip points where `onGizmo` is true. Move the gizmo only through `gizmoMargin`, which both the scene and that check read.
+- **Nothing waits on EdgeTAM**: the other tools work while it downloads, and Smart Select prompts made before it's ready stay on screen and run once it is (`settled` in `tools/smart.ts`). The worker falls back from WebGPU to WebAssembly on its own.
+- **Errors go to the status**: `notify()` shows a passing one (a file that won't open, a view that failed); a model that never loaded offers Retry.
 - **Class hotkeys use `e.code` (`Digit1`–`Digit9`)**, so they work on any keyboard layout.
 - **Dev console:** `await import('/src/apps/3d-segmenter/lib/index.ts')` exposes `data`, `ui`, `doc` and `api`.
 - **Sample:** `public/models/groceries.glb`, eight YCB objects (CC BY 4.0), credited in the About dialog.
@@ -64,7 +66,7 @@ Faces are front-only everywhere, including the depth pass: to reach a back face,
 ## Testing
 
 - `pnpm test` (Vitest, Node, about 2 s): `tests/unit/`. The engine, history, Fill and Smart Select on small synthetic meshes loaded through the real `parse`; `fixtures.ts` stands in for a capture.
-- `pnpm test:e2e` (Playwright, about 2 min): `tests/e2e/`. The real app in headless Chromium, which renders WebGL on the CPU (SwiftShader), driven with real pointer and keyboard input. A fake model answers boxes and points with square masks, so Smart Select runs without EdgeTAM; check the real model by hand.
+- `pnpm test:e2e` (Playwright): `tests/e2e/`. The real app in headless Chromium, driven with real pointer and keyboard input. It renders on the GPU; without one, Chromium falls back to drawing on the CPU, several times slower. A fake model answers boxes and points with square masks, so Smart Select runs without EdgeTAM; check the real model by hand.
 - Assert on state (labels, preview triangles, the ring's position), not pixels. A bug fix gets a test that fails without it.
 
 ## Known limits

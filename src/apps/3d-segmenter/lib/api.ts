@@ -2,6 +2,7 @@ import { MOUSE } from 'three'
 
 import {
   type Cls,
+  FORMATS,
   type Part,
   type Release,
   SAMPLE,
@@ -11,7 +12,7 @@ import {
 import * as edit from './edit'
 import { data, parse, toMeta, toPLY } from './mesh'
 import { sam } from './sam'
-import { doc, type Option, ui } from './state'
+import { doc, notify, type Option, ui } from './state'
 import { tools } from './tools'
 import * as selection from './tools/smart'
 import { capture, fit, view } from './view'
@@ -71,22 +72,35 @@ function download(content: string, name: string) {
 export const api = {
   /** Loads the model and the sample; returns a cleanup that frees the model. */
   start() {
-    sam.start({ ready: () => api.settle(), mask: selection.mask })
+    api.retry()
     void api.open(SAMPLE.url)
     return sam.stop
+  },
+
+  /** Loads EdgeTAM, again after it failed. */
+  retry() {
+    sam.stop()
+    sam.start({ ready: () => api.settle(), mask: selection.mask })
   },
 
   async open(source: File | string) {
     const isURL = typeof source === 'string'
     const name = isURL ? source.split('/').pop()! : source.name
+    const ext = name.split('.').pop()!.toLowerCase()
+    if (!FORMATS.includes(ext))
+      return notify(`Can’t open .${ext} files · try GLB, OBJ, PLY or STL`)
+    ui.set({ opening: name })
     try {
-      const buffer = isURL
-        ? await (await fetch(source)).arrayBuffer()
-        : await source.arrayBuffer()
+      const response = isURL ? await fetch(source) : null
+      if (response && !response.ok) throw new Error(response.statusText)
+      const buffer = await (response ?? (source as File)).arrayBuffer()
       current().flush?.()
       await parse(name, buffer)
     } catch (e) {
-      return console.error(e)
+      console.error(e)
+      return notify(`Couldn’t open ${name}`)
+    } finally {
+      ui.set({ opening: '' })
     }
     edit.forget()
     ui.set({ mesh: ui.get().mesh + 1, part: -1, hover: -1 })

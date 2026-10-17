@@ -15,10 +15,10 @@ function relabel() {
   recount()
 }
 
+/** Before the model is ready, prompts wait on screen and run once it is. */
 function prompt(points: Point[], box: Box | null) {
-  if (!sam.ready) return
   prompts.set({ points, box })
-  sam.decode(points, box)
+  if (sam.ready) sam.decode(points, box)
 }
 
 /** The model's answer: labels are applied live, each answer from scratch. */
@@ -78,6 +78,9 @@ export const smart: Behavior = {
   settled() {
     bump()
     sam.encode()
+    // Prompts left waiting on the model, which just arrived.
+    const { points, box } = prompts.get()
+    if (points.length || box) sam.decode(points, box)
   },
 
   /** Picking a class mid-selection relabels it: click an object, then press 3. */
