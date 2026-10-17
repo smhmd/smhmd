@@ -12,7 +12,7 @@ import { AppIcon, metadata } from './metadata'
 
 export const { meta, links } = generateHead({
   metadata,
-  icon: <AppIcon fill='transparent' padding={14} wip={false} />,
+  icon: <AppIcon />,
 })
 
 export default function App() {

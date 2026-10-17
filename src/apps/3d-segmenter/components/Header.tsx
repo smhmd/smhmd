@@ -15,55 +15,61 @@ const action = clsx(
   '[&_svg]:size-5 [&_svg]:fill-current',
 )
 
-/** A top bar on large screens; on phones its pieces float over the canvas instead. */
+/** The toolbar on large screens; on phones the tools and Open/Export float over the canvas instead. */
 export function Header() {
+  return (
+    <header className='max-lg:contents lg:col-start-2 lg:row-start-1 lg:flex lg:items-center lg:justify-center'>
+      <Toolbar />
+      <Actions
+        className={clsx(
+          glass,
+          'absolute right-3 top-3 rounded-2xl p-1.5 lg:hidden',
+        )}
+      />
+    </header>
+  )
+}
+
+/** Open and Export: in the right panel on large screens, a floating card on phones. */
+export function Actions({ className }: { className?: string }) {
   const input = useRef<HTMLInputElement>(null)
 
   return (
-    <header className='max-lg:contents lg:col-start-2 lg:row-start-1 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:items-center'>
-      <span />
-      <Toolbar />
-      <div
-        className={clsx(
-          glass,
-          'flex items-center gap-1 justify-self-end',
-          'max-lg:absolute max-lg:right-3 max-lg:top-3 max-lg:rounded-2xl max-lg:p-1.5',
-        )}>
-        <input
-          ref={input}
-          type='file'
-          accept='.glb,.gltf,.obj,.ply,.stl'
-          hidden
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) void api.open(file)
-            e.target.value = ''
-          }}
-        />
-        <Tip label='Open Model' keys='GLB · OBJ · PLY · STL'>
-          <button
-            type='button'
-            aria-label='Open Model'
-            onClick={() => input.current?.click()}
-            className={action}>
-            <Upload aria-hidden className='lg:hidden' />
-            <span className='max-lg:sr-only'>Open</span>
-          </button>
-        </Tip>
-        <Tip label='Per-Vertex PLY + meta.json' keys='for Supervisely'>
-          <button
-            type='button'
-            aria-label='Export'
-            onClick={api.export}
-            className={clsx(
-              action,
-              'lg:hocus:bg-neutral-200 lg:hocus:text-neutral-950 lg:bg-white lg:font-medium lg:text-neutral-950',
-            )}>
-            <Download aria-hidden className='lg:hidden' />
-            <span className='max-lg:sr-only'>Export</span>
-          </button>
-        </Tip>
-      </div>
-    </header>
+    <div className={clsx('flex items-center gap-1', className)}>
+      <input
+        ref={input}
+        type='file'
+        accept='.glb,.gltf,.obj,.ply,.stl'
+        hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) void api.open(file)
+          e.target.value = ''
+        }}
+      />
+      <Tip label='Open Model' keys='GLB · OBJ · PLY · STL'>
+        <button
+          type='button'
+          aria-label='Open Model'
+          onClick={() => input.current?.click()}
+          className={action}>
+          <Upload aria-hidden className='lg:hidden' />
+          <span className='max-lg:sr-only'>Open</span>
+        </button>
+      </Tip>
+      <Tip label='Per-Vertex PLY + meta.json' keys='for Supervisely'>
+        <button
+          type='button'
+          aria-label='Export'
+          onClick={api.export}
+          className={clsx(
+            action,
+            'lg:hocus:bg-neutral-200 lg:hocus:text-neutral-950 lg:bg-white lg:font-medium lg:text-neutral-950',
+          )}>
+          <Download aria-hidden className='lg:hidden' />
+          <span className='max-lg:sr-only'>Export</span>
+        </button>
+      </Tip>
+    </div>
   )
 }

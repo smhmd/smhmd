@@ -6,10 +6,10 @@ import {
   type Cls,
   type Part,
   type Point,
+  type Shading,
   type Status,
   type Tool,
 } from './common'
-import { OVERLAY } from './mesh'
 
 /** Tools and viewport: every field is a primitive, so components subscribe to exactly what they show. */
 export const ui = createStore({
@@ -27,18 +27,13 @@ export const ui = createStore({
   mesh: 0,
   /** Bumps whenever the SAM Cam has something new to draw. */
   frame: 0,
-  textures: true,
-  wireframe: false,
+  shading: 'textures' as Shading,
   grid: true,
-  rotate: false,
   /** Labels turn see-through and can't be painted over, revealing what's behind. */
   xray: false,
-  opacity: 0.8,
 })
 
-OVERLAY.opacity = ui.get().opacity
-
-export type Option = 'textures' | 'wireframe' | 'grid' | 'rotate' | 'xray'
+export type Option = 'grid' | 'xray'
 
 export type Doc = {
   name: string

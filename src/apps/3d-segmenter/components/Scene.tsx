@@ -20,14 +20,17 @@ import {
   ui,
   view,
   WIRE,
+  HIDDEN,
+  gizmoMargin,
 } from '../lib'
+
+/** Solid is clay; Wireframe hides the surface but keeps it in the depth buffer, so back edges stay hidden. Textures uses the model's own. */
+const SURFACE = { solid: CLAY, wireframe: HIDDEN, textures: undefined }
 
 export default function Scene() {
   const mesh = ui.use((s) => s.mesh)
-  const textures = ui.use((s) => s.textures)
-  const wireframe = ui.use((s) => s.wireframe)
+  const shading = ui.use((s) => s.shading)
   const grid = ui.use((s) => s.grid)
-  const rotate = ui.use((s) => s.rotate)
   const { gl, camera, controls, size, invalidate } = useThree()
 
   useEffect(() => {
@@ -51,10 +54,10 @@ export default function Scene() {
           <mesh
             ref={(mesh) => void (view.base = mesh)}
             geometry={geometry}
-            material={textures ? materials : CLAY}
+            material={SURFACE[shading] ?? materials}
           />
           <mesh geometry={geometry} material={OVERLAY} renderOrder={1} />
-          {wireframe && (
+          {shading === 'wireframe' && (
             <mesh geometry={geometry} material={WIRE} renderOrder={2} />
           )}
           <mesh geometry={ghost} material={GHOST} renderOrder={3} />
@@ -78,14 +81,11 @@ export default function Scene() {
       <OrbitControls
         makeDefault
         enableDamping={false}
-        autoRotate={rotate}
         minDistance={0.2}
         maxDistance={8}
         onChange={api.move}
       />
-      <GizmoHelper
-        alignment='bottom-right'
-        margin={[52, size.width < 1024 ? 180 : 52]}>
+      <GizmoHelper alignment='bottom-right' margin={gizmoMargin(size.width)}>
         <GizmoViewport
           axisColors={['#ff3b5c', '#4ade80', '#3b82f6']}
           labelColor='#0b0b0c'

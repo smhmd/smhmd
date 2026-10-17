@@ -61,14 +61,19 @@ test('scrolling resizes on the model, not over the controls', async ({
   expect((await ui(page)).radius).toBe(grown)
 })
 
-test('the ring follows the pointer, hides over controls, survives a tool switch', async ({
+test('the ring follows the pointer, stays put over controls to show resizing, survives a tool switch', async ({
   page,
 }) => {
   const at = await on(page, 'Cracker box')
+  await page.keyboard.press('b')
   await page.mouse.move(at.x, at.y)
-  expect(await ring(page)).not.toBeNull()
+  const where = await ring(page)
+  expect(where).not.toBeNull()
+  const before = (await ui(page)).radius
   await page.getByRole('button', { name: /Active Class/ }).hover()
-  expect(await ring(page)).toBeNull()
+  await page.getByRole('slider', { name: 'Brush Size' }).press('ArrowUp')
+  expect((await ui(page)).radius).toBeGreaterThan(before)
+  expect(await ring(page)).toBe(where)
   await page.mouse.move(at.x, at.y)
   await page.keyboard.press('l')
   expect(await ring(page)).not.toBeNull()
@@ -104,4 +109,25 @@ test('Ctrl with another key is a shortcut, not the hand', async ({ page }) => {
   await page.keyboard.press('z')
   await expect(page.locator('body')).not.toHaveAttribute('data-hand')
   await page.keyboard.up('Control')
+})
+
+test('shading is one mode at a time; T and W toggle back to solid', async ({
+  page,
+}) => {
+  const shading = async () => (await ui(page)).shading
+  expect(await shading()).toBe('textures')
+  await page.getByRole('button', { name: 'Wireframe' }).click()
+  expect(await shading()).toBe('wireframe')
+  await page.getByRole('button', { name: 'Solid' }).click()
+  expect(await shading()).toBe('solid')
+  await page.keyboard.press('t')
+  expect(await shading()).toBe('textures')
+  await page.keyboard.press('t')
+  expect(await shading()).toBe('solid')
+  await page.keyboard.press('g')
+  expect((await ui(page)).grid).toBe(false)
+  await expect(page.getByRole('button', { name: 'Grid' })).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  )
 })

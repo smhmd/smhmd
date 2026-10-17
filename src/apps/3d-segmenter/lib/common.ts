@@ -49,6 +49,8 @@ export type Point = { x: number; y: number; positive: boolean }
 /** Screen-space corners: x0, y0, x1, y1. */
 export type Box = [number, number, number, number]
 export type Tool = 'move' | 'smart' | 'fill' | 'brush' | 'erase'
+/** How the model is drawn, one at a time as in Blender: clay, its own textures, or only its edges. */
+export type Shading = 'solid' | 'textures' | 'wireframe'
 export type Status =
   | 'loading'
   | 'moving'

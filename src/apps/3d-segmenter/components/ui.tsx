@@ -1,5 +1,4 @@
 import { Slider } from '@base-ui/react/slider'
-import { Switch } from '@base-ui/react/switch'
 import { Tooltip } from '@base-ui/react/tooltip'
 import clsx from 'clsx'
 
@@ -69,7 +68,7 @@ type RangeProps = {
   onChange(value: number): void
 }
 
-/** A slightly sunken well and a raised, lit knob, shared by sliders and switches. */
+/** A slightly sunken well and a raised, lit knob, for the brush size. */
 const well =
   'rounded-md bg-black/30 p-0.5 shadow-[inset_0_1px_1px_rgb(0_0_0/0.5),0_1px_0_rgb(255_255_255/0.04)]'
 const knob =
@@ -102,27 +101,6 @@ export function Range({ label, vertical, onChange, ...props }: RangeProps) {
         </Slider.Track>
       </Slider.Control>
     </Slider.Root>
-  )
-}
-
-type ToggleProps = { checked: boolean; onChange(): void }
-
-export function Toggle({ checked, onChange }: ToggleProps) {
-  return (
-    <Switch.Root
-      checked={checked}
-      onCheckedChange={onChange}
-      className={clsx(
-        well,
-        'data-checked:bg-white/20 flex h-6 w-10 shrink-0 cursor-pointer transition-colors',
-      )}>
-      <Switch.Thumb
-        className={clsx(
-          knob,
-          'data-checked:translate-x-full h-full w-1/2 transition-transform',
-        )}
-      />
-    </Switch.Root>
   )
 }
 

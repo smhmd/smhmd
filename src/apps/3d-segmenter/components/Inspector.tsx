@@ -1,33 +1,22 @@
 import { AnimatePresence, motion } from 'motion/react'
 
-import { api, data, type Option, ui } from '../lib'
+import { data, doc, ui } from '../lib'
 import { About } from './About'
+import { Actions } from './Header'
 import { SamCam } from './SamCam'
-import { Range, Section, Toggle } from './ui'
+import { Section } from './ui'
 
 const row =
-  'flex h-9 items-center justify-between gap-3 px-3 text-xs text-neutral-300'
+  'flex h-8 items-center justify-between gap-3 px-3 text-xs text-neutral-300'
 
-/** Viewport settings and model facts, Spline-style. Large screens only. */
+/** The file and what it holds, then the SAM Cam and About. Large screens only. */
 export function Inspector() {
   const smart = ui.use((s) => s.tool === 'smart')
 
   return (
     <aside className='no-scrollbar flex flex-col overflow-y-auto max-lg:hidden lg:col-start-3 lg:row-span-2 lg:row-start-1'>
-      <div className='h-12 shrink-0' />
-      <Section title='View'>
-        <Switch option='grid' label='Grid' keys='G' />
-        <Switch option='textures' label='Textures' keys='T' />
-        <Switch option='wireframe' label='Wireframe' keys='W' />
-        <Switch option='rotate' label='Auto-Rotate' />
-        <div className={row}>
-          Label Opacity
-          <div className='w-24'>
-            <Opacity />
-          </div>
-        </div>
-      </Section>
-      <Section title='Model' className='border-white/6 mt-2 border-t'>
+      <Actions className='h-12 shrink-0 justify-end px-3' />
+      <Section title='Model'>
         <Stats />
       </Section>
       {/* Anchored to the bottom, so it can come and go without moving anything above. */}
@@ -50,49 +39,30 @@ export function Inspector() {
   )
 }
 
-function Opacity() {
-  const opacity = ui.use((s) => s.opacity)
-  return (
-    <Range
-      label='Label Opacity'
-      value={opacity}
-      min={0.1}
-      max={1}
-      step={0.05}
-      onChange={api.setOpacity}
-    />
-  )
-}
+const bytes = (n: number) =>
+  n < 1e6 ? `${Math.round(n / 1e3)} KB` : `${(n / 1e6).toFixed(1)} MB`
 
-function Switch({
-  option,
-  label,
-  keys,
-}: {
-  option: Option
-  label: string
-  keys?: string
-}) {
-  const checked = ui.use((s) => s[option])
-  return (
-    <label className={`${row} cursor-pointer`}>
-      <span>
-        {label}
-        {keys && (
-          <kbd className='ml-1.5 font-sans text-neutral-600'>{keys}</kbd>
-        )}
-      </span>
-      <Toggle checked={checked} onChange={() => api.toggle(option)} />
-    </label>
-  )
-}
+/** Three significant digits, so 0.214 and 1,250 both read at a glance. */
+const measure = (n: number) =>
+  n.toLocaleString(undefined, { maximumSignificantDigits: 3 })
 
 function Stats() {
-  ui.use((s) => s.mesh)
-  const stats = [
-    ['Parts', data.parts.length],
-    ['Vertices', data.labels.length],
-    ['Faces', (data.geometry?.index?.count ?? 0) / 3],
+  ui.use((s) => s.mesh) // a new model, even under the same name
+  const name = doc.use((s) => s.name)
+  const { format, bytes: size, size: extent, materials, textures } = data.info
+  if (!name) return null
+  // glTF is in meters; OBJ, PLY and STL don't say.
+  const unit = format === 'GLB' || format === 'GLTF' ? ' m' : ''
+
+  const stats: [string, string][] = [
+    ['Name', name],
+    ['File', `${format}, ${bytes(size)}`],
+    ['Size', extent.map(measure).join(' × ') + unit],
+    ['Parts', data.parts.length.toLocaleString()],
+    ['Vertices', data.labels.length.toLocaleString()],
+    ['Faces', (data.triangles.length / 3).toLocaleString()],
+    ['Materials', materials.toLocaleString()],
+    ['Textures', textures ? textures.toLocaleString() : 'None'],
   ]
 
   return (
@@ -100,8 +70,8 @@ function Stats() {
       {stats.map(([label, value]) => (
         <div key={label} className={row}>
           <dt>{label}</dt>
-          <dd className='tabular-nums text-neutral-500'>
-            {value.toLocaleString()}
+          <dd title={value} className='truncate tabular-nums text-neutral-500'>
+            {value}
           </dd>
         </div>
       ))}

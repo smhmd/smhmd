@@ -1,6 +1,5 @@
 import clsx from 'clsx'
 
-import { doc } from '../lib'
 import { AppIcon } from '../metadata'
 import { About } from './About'
 import { Classes } from './Classes'
@@ -8,8 +7,6 @@ import { Parts } from './Parts'
 import { glass } from './ui'
 
 export function Sidebar() {
-  const name = doc.use((s) => s.name)
-
   return (
     <aside
       className={clsx(
@@ -20,9 +17,7 @@ export function Sidebar() {
       )}>
       <div className='flex h-12 shrink-0 items-center gap-2 px-3 max-lg:hidden'>
         <AppIcon aria-hidden className='size-5 rounded-md' />
-        <h1 className='truncate text-[13px] font-medium'>
-          {name || '3D Segmenter'}
-        </h1>
+        <h1 className='text-[13px] font-medium'>3D Segmenter</h1>
       </div>
       <Classes />
       <Parts />

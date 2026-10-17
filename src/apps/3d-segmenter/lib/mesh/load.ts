@@ -140,6 +140,14 @@ export async function parse(name: string, buffer: ArrayBuffer) {
   preview.setIndex(new BufferAttribute(triangles.slice(), 1))
   preview.setDrawRange(0, 0)
 
+  const sources = new Set(meshes.flatMap((m) => [m.material].flat()))
+  const maps = new Set(
+    [...sources]
+      .map((m) => (m as { map?: Texture | null }).map)
+      .filter(Boolean),
+  )
+  const box = geometry.boundingBox!
+
   for (const g of [data.geometry, data.ghost, data.outline, data.preview])
     g?.dispose()
   Object.assign(data, {
@@ -154,5 +162,12 @@ export async function parse(name: string, buffer: ArrayBuffer) {
     labels: new Int32Array(count).fill(-1),
     center: center.toArray(),
     scale: radius,
+    info: {
+      format: name.split('.').pop()!.toUpperCase(),
+      bytes: buffer.byteLength,
+      size: box.max.clone().sub(box.min).multiplyScalar(radius).toArray(),
+      materials: sources.size,
+      textures: maps.size,
+    },
   })
 }

@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 
-import type { Tool } from '../common'
+import type { Shading, Tool } from '../common'
 import { data } from '../mesh'
 import { api } from '../api'
 import { MAC, MOD } from '../platform'
@@ -15,6 +15,10 @@ const TOOLS: Record<string, Tool> = {
   e: 'erase',
 }
 
+/** T and W pick their shading, or go back to Solid if it's already on. */
+const shade = (shading: Shading) =>
+  api.setShading(ui.get().shading === shading ? 'solid' : shading)
+
 const ACTIONS: Record<string, () => void> = {
   '[': () => api.resize(1 / 1.25),
   ']': () => api.resize(1.25),
@@ -23,8 +27,8 @@ const ACTIONS: Record<string, () => void> = {
   escape: api.cancel,
   f: () => api.fit(data.parts[ui.get().part]),
   g: () => api.toggle('grid'),
-  t: () => api.toggle('textures'),
-  w: () => api.toggle('wireframe'),
+  t: () => shade('textures'),
+  w: () => shade('wireframe'),
   x: () => api.toggle('xray'),
 }
 

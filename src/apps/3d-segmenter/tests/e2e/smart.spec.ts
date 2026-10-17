@@ -33,9 +33,12 @@ test('Enter applies too; a focused control keeps Space for itself', async ({
   await box(page, 'Cracker box')
   await page.mouse.up()
   await expect.poll(() => labeled(page)).toBeGreaterThan(0)
-  await page.getByRole('switch', { name: 'Wireframe' }).focus()
+  await page.getByRole('button', { name: 'Wireframe' }).focus()
   await page.keyboard.press('Space')
-  expect(await ui(page)).toMatchObject({ wireframe: true, selecting: true })
+  expect(await ui(page)).toMatchObject({
+    shading: 'wireframe',
+    selecting: true,
+  })
   await page.evaluate(() => (document.activeElement as HTMLElement).blur())
   await page.keyboard.press('Enter')
   expect((await ui(page)).selecting).toBe(false)
@@ -86,4 +89,23 @@ test('a number key mid-selection relabels it', async ({ page }) => {
   await page.keyboard.press('3')
   expect(await labeled(page, 2)).toBe(n)
   expect(await labeled(page, 0)).toBe(0)
+})
+
+test('a press on the gizmo turns the camera, not a selection', async ({
+  page,
+}) => {
+  const gizmo = await page.evaluate(() => {
+    const r = window.m.view.gl!.domElement.getBoundingClientRect()
+    const [mx, my] = window.m.gizmoMargin(r.width)
+    return { x: r.right - mx, y: r.bottom - my }
+  })
+  await page.mouse.move(gizmo.x - 20, gizmo.y - 20)
+  await page.mouse.down()
+  await page.mouse.move(gizmo.x + 20, gizmo.y + 20, { steps: 4 })
+  await page.mouse.up()
+  expect(await page.evaluate(() => window.m.prompts.get())).toEqual({
+    points: [],
+    box: null,
+  })
+  expect(await labeled(page)).toBe(0)
 })

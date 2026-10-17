@@ -1,8 +1,15 @@
 import { MOUSE } from 'three'
 
-import { type Cls, type Part, type Release, SAMPLE, type Tool } from './common'
+import {
+  type Cls,
+  type Part,
+  type Release,
+  SAMPLE,
+  type Shading,
+  type Tool,
+} from './common'
 import * as edit from './edit'
-import { data, OVERLAY, parse, toMeta, toPLY } from './mesh'
+import { data, parse, toMeta, toPLY } from './mesh'
 import { sam } from './sam'
 import { doc, type Option, ui } from './state'
 import { tools } from './tools'
@@ -115,10 +122,8 @@ export const api = {
     api.move()
   },
 
-  setOpacity(opacity: number) {
-    OVERLAY.opacity = opacity
-    view.invalidate()
-    ui.set({ opacity })
+  setShading(shading: Shading) {
+    ui.set({ shading })
   },
 
   addClass: edit.addClass,

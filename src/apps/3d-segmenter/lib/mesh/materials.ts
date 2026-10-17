@@ -26,6 +26,7 @@ export const CLAY = new MeshMatcapMaterial({ matcap, color: '#d9d4cc' })
 export const OVERLAY = new MeshBasicMaterial({
   vertexColors: true,
   transparent: true,
+  opacity: 0.8,
   depthWrite: false,
   polygonOffset: true,
   polygonOffsetFactor: -1,
@@ -50,12 +51,16 @@ export const PREVIEW = new MeshBasicMaterial({
   polygonOffsetUnits: -2,
 })
 
+/** Wireframe shading: brighter edges, since there's no surface behind them. */
 export const WIRE = new MeshBasicMaterial({
   wireframe: true,
-  color: '#000000',
+  color: '#ffffff',
   transparent: true,
-  opacity: 0.2,
+  opacity: 0.35,
 })
+
+/** Wireframe shading's surface: invisible, but it still hides the edges behind it. */
+export const HIDDEN = new MeshBasicMaterial({ colorWrite: false })
 
 /**
  * A part's silhouette: its back faces pushed out along their normals by a

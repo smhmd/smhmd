@@ -5,7 +5,7 @@ import { rect } from '../common'
 import { MOD } from '../platform'
 import { ui } from '../state'
 import { tools } from '../tools'
-import { view } from '../view'
+import { onGizmo, view } from '../view'
 
 type Gesture = {
   id: number
@@ -106,8 +106,10 @@ export function useGestures() {
       api.abort()
       return end()
     }
-    if (view.hand || e.button !== 0 || !current().gesture) return
     const [x, y] = local(e)
+    // The gizmo takes its own clicks: one press turns the camera, whatever the tool.
+    if (view.hand || e.button !== 0 || !current().gesture || onGizmo(x, y))
+      return
     gesture.current = {
       id: e.pointerId,
       x,
@@ -125,8 +127,9 @@ export function useGestures() {
   function onPointerMove(e: React.PointerEvent) {
     const [x, y] = local(e)
     const g = gesture.current
-    // Over the floating controls the pointer isn't on the model: no ring, no preview.
-    if (!g && !(e.target instanceof HTMLCanvasElement)) return onPointerLeave()
+    // Over the floating controls the ring stays put, so dragging the size slider grows it in place.
+    if (!g && !(e.target instanceof HTMLCanvasElement)) return
+    if (!g && onGizmo(x, y)) return onPointerLeave()
     if (ring.current) {
       ring.current.style.translate = `${x}px ${y}px`
       // Orbiting with the right or middle button: the ring or guides would lie.

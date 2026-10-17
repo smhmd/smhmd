@@ -55,6 +55,8 @@ Faces are front-only everywhere, including the depth pass: to reach a back face,
 - **After any imperative change** (colors, materials, indices), call `view.invalidate()`, or the canvas won't redraw.
 - **`capture` reads pixels synchronously** and is expensive. Never call it per frame.
 - **The model only runs in Smart Select**: the SAM Cam and encoding are skipped in other tools to save GPU time.
+- **Shading is one mode** (`ui.shading`): Solid, Textures or Wireframe. Wireframe keeps the surface as an invisible depth writer, so back edges stay hidden and the depth pass still sees the model.
+- **The gizmo takes its own presses**: gestures skip points where `onGizmo` is true. Move the gizmo only through `gizmoMargin`, which both the scene and that check read.
 - **Class hotkeys use `e.code` (`Digit1`–`Digit9`)**, so they work on any keyboard layout.
 - **Dev console:** `await import('/src/apps/3d-segmenter/lib/index.ts')` exposes `data`, `ui`, `doc` and `api`.
 - **Sample:** `public/models/groceries.glb`, eight YCB objects (CC BY 4.0), credited in the About dialog.

@@ -235,3 +235,21 @@ export function fit(part?: Part) {
   camera.position.copy(sphere.center).addScaledVector(direction, distance * 1.1)
   controls.update()
 }
+
+/**
+ * Where the axis gizmo sits: its center's distance from the canvas's
+ * bottom-right corner. Phones lift it clear of the toolbar.
+ */
+export const gizmoMargin = (width: number): [number, number] => [
+  52,
+  width < 1024 ? 180 : 52,
+]
+
+/** Whether a canvas point is on the gizmo, which takes its own clicks. */
+export function onGizmo(x: number, y: number) {
+  const canvas = view.gl?.domElement
+  if (!canvas) return false
+  const [mx, my] = gizmoMargin(canvas.clientWidth)
+  const [cx, cy] = [canvas.clientWidth - mx, canvas.clientHeight - my]
+  return (x - cx) ** 2 + (y - cy) ** 2 < 48 ** 2
+}

@@ -25,6 +25,14 @@ export const data = {
   base: null as Int32Array | null,
   center: [0, 0, 0],
   scale: 1,
+  /** What the file held, for the Model section. `size` is in the file's own units. */
+  info: {
+    format: '',
+    bytes: 0,
+    size: [0, 0, 0],
+    materials: 0,
+    textures: 0,
+  },
 }
 
 /**

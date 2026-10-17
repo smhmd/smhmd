@@ -1,4 +1,5 @@
 import clsx from 'clsx'
+import { MotionConfig, motion } from 'motion/react'
 
 import { api, ui, useMod } from '../lib'
 import { TOOLS } from './tools'
@@ -24,7 +25,7 @@ function useHint(): [string, string] {
     return ['Analyzing view…', 'Analyzing view…']
   if (selecting)
     return [
-      'Click to add · ⌥-click to exclude · drag a new box',
+      'Click to add · ⌥-click to exclude',
       'Tap to add · long-press to exclude',
     ]
   return [
@@ -33,6 +34,14 @@ function useHint(): [string, string] {
   ]
 }
 
+/** A spring like iOS's: quick, with a hint of overshoot as the island grows or shrinks. */
+const spring = { type: 'spring', bounce: 0.25, duration: 0.45 } as const
+
+/**
+ * The status, as an island like iOS's Dynamic Island but at the bottom: a
+ * black capsule that grows to fit what it says, and makes room for Apply and
+ * Cancel mid-selection.
+ */
 export function Status() {
   const [fine, coarse] = useHint()
   const status = ui.use((s) => s.status)
@@ -42,52 +51,73 @@ export function Status() {
   const busy = smart && status !== 'ready' && status !== 'error'
 
   return (
-    <div
-      aria-live='polite'
-      className={clsx(
-        'absolute flex max-w-[calc(100%-2rem)] items-center gap-2 rounded-full bg-black/60 py-1 pl-3 text-xs text-neutral-300 backdrop-blur-md',
-        selecting ? 'pr-1' : 'pr-3',
-        'max-lg:bottom-20 max-lg:right-4 sm:max-lg:left-1/2 sm:max-lg:right-auto sm:max-lg:-translate-x-1/2',
-        'lg:bottom-3 lg:left-1/2 lg:-translate-x-1/2',
-      )}>
-      <span
+    <MotionConfig transition={spring} reducedMotion='user'>
+      <motion.div
+        layout
+        aria-live='polite'
+        // In style, so the corners stay round while the size animates.
+        style={{ borderRadius: 999 }}
         className={clsx(
-          'size-1.5 shrink-0 rounded-full',
-          busy
-            ? 'animate-pulse bg-amber-400'
-            : status === 'error'
-              ? 'bg-red-500'
-              : 'bg-green-400',
+          'absolute flex max-w-[calc(100%-2rem)] items-center gap-2 overflow-hidden bg-black py-1.5 pl-3.5 text-xs text-neutral-200 shadow-lg shadow-black/40',
+          selecting ? 'pr-1.5' : 'pr-3.5',
+          'max-lg:bottom-20 max-lg:right-4 sm:max-lg:left-1/2 sm:max-lg:right-auto sm:max-lg:-translate-x-1/2',
+          'lg:bottom-3 lg:left-1/2 lg:-translate-x-1/2',
+        )}>
+        <motion.span
+          layout='position'
+          className={clsx(
+            'size-1.5 shrink-0 rounded-full',
+            busy
+              ? 'animate-pulse bg-amber-400'
+              : status === 'error'
+                ? 'bg-red-500'
+                : 'bg-green-400',
+          )}
+        />
+        {/* Keyed by what it says, so new words fade in as the island resizes. */}
+        <motion.span
+          key={fine}
+          layout='position'
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className='truncate'>
+          <span className='pointer-coarse:hidden'>{fine}</span>
+          <span className='pointer-fine:hidden'>{coarse}</span>
+        </motion.span>
+        {status === 'loading' && (
+          <motion.span
+            layout='position'
+            className='tabular-nums text-neutral-500'>
+            {progress}%
+          </motion.span>
         )}
-      />
-      <span className='truncate'>
-        <span className='pointer-coarse:hidden'>{fine}</span>
-        <span className='pointer-fine:hidden'>{coarse}</span>
-      </span>
-      {status === 'loading' && (
-        <span className='tabular-nums text-neutral-500'>{progress}%</span>
-      )}
-      {/* Labels are already applied live; these close the selection out, either way. */}
-      {selecting && (
-        <span className='flex shrink-0 gap-1'>
-          <button
-            type='button'
-            onClick={api.cancel}
-            className={clsx(pill, 'hocus:bg-white/10')}>
-            Cancel <kbd className={kbd}>esc</kbd>
-          </button>
-          <button
-            type='button'
-            onClick={api.finish}
-            className={clsx(
-              pill,
-              'hocus:bg-neutral-200 bg-white font-medium text-neutral-950',
-            )}>
-            Apply <kbd className={clsx(kbd, 'text-neutral-500')}>space</kbd>
-          </button>
-        </span>
-      )}
-    </div>
+        {/* Labels are already applied live; these close the selection out, either way. */}
+        {selecting && (
+          <motion.span
+            layout='position'
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className='flex shrink-0 gap-1'>
+            <button
+              type='button'
+              onClick={api.cancel}
+              className={clsx(pill, 'hocus:bg-white/10')}>
+              Cancel <kbd className={kbd}>esc</kbd>
+            </button>
+            <button
+              type='button'
+              onClick={api.finish}
+              className={clsx(
+                pill,
+                'hocus:bg-neutral-200 bg-white font-medium text-neutral-950',
+              )}>
+              Apply <kbd className={clsx(kbd, 'text-neutral-500')}>space</kbd>
+            </button>
+          </motion.span>
+        )}
+      </motion.div>
+    </MotionConfig>
   )
 }
 
