@@ -33,7 +33,7 @@ export function SamCam() {
   }, [frame, color, points, box])
 
   return (
-    <Section title='SAM cam'>
+    <Section title='SAM Cam'>
       {/* A fixed screen in the frame's own gray, so letterboxing is invisible and it never jumps. */}
       <div
         className='ring-white/6 aspect-4/3 relative mx-3 overflow-hidden rounded-md ring-1'

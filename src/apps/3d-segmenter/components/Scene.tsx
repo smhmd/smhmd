@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useLayoutEffect } from 'react'
 
 import {
   GizmoHelper,
@@ -7,9 +7,20 @@ import {
   OrbitControls,
 } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
-import type { Material } from 'three'
-
-import { api, CLAY, data, OVERLAY, ui, view, WIRE } from '../lib'
+import {
+  api,
+  CLAY,
+  data,
+  doc,
+  GHOST,
+  outline,
+  OUTLINE,
+  OVERLAY,
+  PREVIEW,
+  ui,
+  view,
+  WIRE,
+} from '../lib'
 
 export default function Scene() {
   const mesh = ui.use((s) => s.mesh)
@@ -17,29 +28,22 @@ export default function Scene() {
   const wireframe = ui.use((s) => s.wireframe)
   const grid = ui.use((s) => s.grid)
   const rotate = ui.use((s) => s.rotate)
-  const opacity = ui.use((s) => s.opacity)
-  const { gl, camera, controls, size } = useThree()
+  const { gl, camera, controls, size, invalidate } = useThree()
 
   useEffect(() => {
-    Object.assign(view, { gl, camera, controls })
-  }, [gl, camera, controls])
+    Object.assign(view, { gl, camera, controls, invalidate })
+  }, [gl, camera, controls, invalidate])
 
-  useEffect(() => api.frame(), [mesh, controls])
+  useEffect(() => api.fit(), [mesh, controls])
 
   // A resized canvas makes the captured view stale, just like orbiting does.
-  useEffect(() => api.move(), [size.width, size.height])
-
   useEffect(() => {
-    OVERLAY.opacity = opacity
-  }, [opacity])
+    OUTLINE.uniforms.viewport.value.set(size.width, size.height)
+    api.move()
+  }, [size.width, size.height])
 
-  // One material slot per part, so hiding a part's geometry group hides it everywhere.
-  const groups = useMemo(() => {
-    const fill = (m: Material) => data.parts.map(() => m)
-    return { clay: fill(CLAY), overlay: fill(OVERLAY), wire: fill(WIRE) }
-  }, [mesh])
-
-  const { geometry } = data
+  // Read after `mesh` changes, which re-renders this.
+  const { geometry, ghost, materials } = data
   return (
     <>
       {geometry && (
@@ -47,12 +51,15 @@ export default function Scene() {
           <mesh
             ref={(mesh) => void (view.base = mesh)}
             geometry={geometry}
-            material={textures ? data.materials : groups.clay}
+            material={textures ? materials : CLAY}
           />
-          <mesh geometry={geometry} material={groups.overlay} renderOrder={1} />
+          <mesh geometry={geometry} material={OVERLAY} renderOrder={1} />
           {wireframe && (
-            <mesh geometry={geometry} material={groups.wire} renderOrder={2} />
+            <mesh geometry={geometry} material={WIRE} renderOrder={2} />
           )}
+          <mesh geometry={ghost} material={GHOST} renderOrder={3} />
+          <mesh geometry={data.preview} material={PREVIEW} renderOrder={2} />
+          <Outline mesh={mesh} />
           {grid && (
             <Grid
               position-y={geometry.boundingBox!.min.y - 0.002}
@@ -86,4 +93,17 @@ export default function Scene() {
       </GizmoHelper>
     </>
   )
+}
+
+/** The hovered part in the Parts list, or else the selected one. */
+function Outline({ mesh }: { mesh: number }) {
+  const index = ui.use((s) => (s.hover >= 0 ? s.hover : s.part))
+  const hidden = doc.use((s) => s.parts[index]?.hidden ?? true)
+
+  useLayoutEffect(() => {
+    outline(hidden ? -1 : index)
+    view.invalidate()
+  }, [index, hidden, mesh])
+
+  return <mesh geometry={data.outline} material={OUTLINE} renderOrder={4} />
 }

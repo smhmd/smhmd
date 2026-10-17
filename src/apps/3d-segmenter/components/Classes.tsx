@@ -16,7 +16,7 @@ export function Classes() {
       unit='vertices'
       className='shrink-0'
       action={
-        <IconButton label='New class' className={small} onClick={api.addClass}>
+        <IconButton label='New Class' className={small} onClick={api.addClass}>
           <Add aria-hidden />
         </IconButton>
       }>
@@ -81,7 +81,7 @@ const Row = memo(({ cls, index, active }: RowProps) => {
           : 'hocus-within:bg-white/5 text-neutral-300',
       )}>
       <label
-        title='Change color'
+        title='Change Color'
         className='has-focus-visible:ring-2 has-focus-visible:ring-white/40 grid size-5 shrink-0 cursor-pointer place-items-center rounded'>
         <span
           className={clsx(
@@ -93,7 +93,7 @@ const Row = memo(({ cls, index, active }: RowProps) => {
         <input
           type='color'
           value={color}
-          aria-label={`${name} color`}
+          aria-label={`${name} Color`}
           onChange={(e) => api.editClass(id, { color: e.target.value })}
           className='sr-only'
         />
@@ -102,7 +102,7 @@ const Row = memo(({ cls, index, active }: RowProps) => {
       {editing ? (
         <input
           autoFocus
-          aria-label='Class name'
+          aria-label='Class Name'
           defaultValue={name}
           onFocus={(e) => e.target.select()}
           onBlur={(e) => rename(e.target.value)}
@@ -132,20 +132,20 @@ const Row = memo(({ cls, index, active }: RowProps) => {
 
       <Trailing count={count} pinned={hidden}>
         <IconButton
-          label='Clear labels'
+          label='Clear Labels'
           className={small}
           disabled={!count}
           onClick={() => api.clearClass(id)}>
           <ColorReset aria-hidden />
         </IconButton>
         <IconButton
-          label={hidden ? 'Show labels' : 'Hide labels'}
+          label={hidden ? 'Show Labels' : 'Hide Labels'}
           className={small}
           onClick={() => api.editClass(id, { hidden: !hidden })}>
           {hidden ? <VisibilityOff aria-hidden /> : <Visibility aria-hidden />}
         </IconButton>
         <IconButton
-          label='Delete class'
+          label='Delete Class'
           className={small}
           onClick={() => api.removeClass(id)}>
           <Close aria-hidden />

@@ -2,25 +2,13 @@ import { Toggle } from '@base-ui/react/toggle'
 import { ToggleGroup } from '@base-ui/react/toggle-group'
 import clsx from 'clsx'
 
-import { AutoFix, Brush, ColorReset, PanTool } from 'src/icons'
-
-import { api, type Tool, ui } from '../lib'
+import { api, type Tool, ui, useMod } from '../lib'
+import { TOOLS } from './tools'
 import { button, glass, Tip } from './ui'
-
-export const TOOLS: {
-  id: Tool
-  label: string
-  keys: string
-  Icon: typeof Brush
-}[] = [
-  { id: 'move', label: 'Move', keys: 'V · or hold Space', Icon: PanTool },
-  { id: 'smart', label: 'Smart select', keys: 'S', Icon: AutoFix },
-  { id: 'brush', label: 'Brush', keys: 'B', Icon: Brush },
-  { id: 'erase', label: 'Eraser', keys: 'E', Icon: ColorReset },
-]
 
 export function Toolbar() {
   const tool = ui.use((s) => s.tool)
+  const { mod } = useMod()
 
   return (
     <nav
@@ -36,9 +24,21 @@ export function Toolbar() {
         value={[tool]}
         onValueChange={([next]) => next && api.setTool(next as Tool)}
         className='flex gap-1'>
-        {TOOLS.map(({ id, label, keys, Icon }) => (
-          <Tip key={id} label={label} keys={keys}>
-            <Toggle value={id} aria-label={label} className={button}>
+        {Object.entries(TOOLS).map(([id, { label, keys, Icon }]) => (
+          <Tip
+            key={id}
+            label={label}
+            keys={id === 'move' ? `${keys} · or hold ${mod}` : keys}>
+            <Toggle
+              value={id}
+              aria-label={label}
+              className={clsx(
+                button,
+                // Held Ctrl borrows the Move tool, so show it as the active one.
+                id === 'move'
+                  ? 'in-data-hand:bg-white/12 in-data-hand:text-white'
+                  : 'in-data-hand:data-pressed:bg-transparent in-data-hand:data-pressed:text-neutral-400',
+              )}>
               <Icon aria-hidden />
             </Toggle>
           </Tip>

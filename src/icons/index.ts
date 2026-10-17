@@ -22,6 +22,8 @@ export { default as Copy } from '@material-icons/svg/svg/content_copy/round.svg?
 export { default as Download } from '@material-icons/svg/svg/download/round.svg?react'
 export { default as FilePresent } from '@material-icons/svg/svg/file_present/round.svg?react'
 export { default as CenterFocus } from '@material-icons/svg/svg/filter_center_focus/round.svg?react'
+export { default as FlipToBack } from '@material-icons/svg/svg/flip_to_back/round.svg?react'
+export { default as FormatColorFill } from '@material-icons/svg/svg/format_color_fill/round.svg?react'
 export { default as ColorReset } from '@material-icons/svg/svg/format_color_reset/round.svg?react'
 export { default as Help } from '@material-icons/svg/svg/help_outline/round.svg?react'
 export { default as Info } from '@material-icons/svg/svg/info/round.svg?react'

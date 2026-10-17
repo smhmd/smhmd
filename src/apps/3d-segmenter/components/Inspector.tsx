@@ -19,9 +19,9 @@ export function Inspector() {
         <Switch option='grid' label='Grid' keys='G' />
         <Switch option='textures' label='Textures' keys='T' />
         <Switch option='wireframe' label='Wireframe' keys='W' />
-        <Switch option='rotate' label='Auto-rotate' />
+        <Switch option='rotate' label='Auto-Rotate' />
         <div className={row}>
-          Label opacity
+          Label Opacity
           <div className='w-24'>
             <Opacity />
           </div>
@@ -50,25 +50,11 @@ export function Inspector() {
   )
 }
 
-export function Size({ vertical }: { vertical?: boolean }) {
-  const radius = ui.use((s) => s.radius)
-  return (
-    <Range
-      label='Brush size'
-      value={radius}
-      min={4}
-      max={120}
-      vertical={vertical}
-      onChange={api.setRadius}
-    />
-  )
-}
-
 function Opacity() {
   const opacity = ui.use((s) => s.opacity)
   return (
     <Range
-      label='Label opacity'
+      label='Label Opacity'
       value={opacity}
       min={0.1}
       max={1}
