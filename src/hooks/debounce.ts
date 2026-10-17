@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 
 export function useDebounced(callback: () => void, delay = 1000) {
-  const timeout = useRef<number | null>(null)
+  const timeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const debounced = useCallback(
     (override = delay) => {
