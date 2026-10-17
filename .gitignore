@@ -15,3 +15,7 @@ IDEAS.md
 # Development
 public/screenshots/*
 trailer/
+
+# Playwright
+test-results/
+playwright-report/

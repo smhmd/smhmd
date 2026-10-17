@@ -11,6 +11,8 @@
     "lint": "eslint src",
     "postinstall": "pnpm cf-typegen",
     "preview": "pnpm build && vite preview",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
     "typecheck": "pnpm cf-typegen && react-router typegen && tsc -b"
   },
   "dependencies": {
@@ -44,6 +46,7 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.17.0",
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.56.0",
     "@react-router/dev": "^7.10.1",
     "@tailwindcss/vite": "^4.1.17",
     "@types/matter-js": "^0.19.8",
@@ -67,6 +70,7 @@
     "vite": "^7.2.7",
     "vite-plugin-svgr": "^4.5.0",
     "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^5.0.5",
     "wrangler": "^4.53.0"
   }
 }
