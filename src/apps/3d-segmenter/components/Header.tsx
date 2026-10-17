@@ -40,17 +40,17 @@ export function Header() {
             e.target.value = ''
           }}
         />
-        <Tip label='Open a mesh' keys='GLB · OBJ · PLY · STL'>
+        <Tip label='Open Model' keys='GLB · OBJ · PLY · STL'>
           <button
             type='button'
-            aria-label='Open a mesh'
+            aria-label='Open Model'
             onClick={() => input.current?.click()}
             className={action}>
             <Upload aria-hidden className='lg:hidden' />
             <span className='max-lg:sr-only'>Open</span>
           </button>
         </Tip>
-        <Tip label='Per-vertex PLY + meta.json' keys='for Supervisely'>
+        <Tip label='Per-Vertex PLY + meta.json' keys='for Supervisely'>
           <button
             type='button'
             aria-label='Export'

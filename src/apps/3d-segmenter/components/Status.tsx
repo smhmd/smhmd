@@ -1,10 +1,11 @@
 import clsx from 'clsx'
 
-import { api, ui } from '../lib'
+import { api, ui, useMod } from '../lib'
+import { TOOLS } from './tools'
 
 const LOADING = {
-  loading: 'Loading Smart Tool',
-  error: 'Smart Tool unavailable · use the brush',
+  loading: 'Loading Smart Select',
+  error: 'Smart Select unavailable · use the brush or Fill',
 }
 
 /** One line that always says what the current tool does next. */
@@ -13,21 +14,9 @@ function useHint(): [string, string] {
   const status = ui.use((s) => s.status)
   const selecting = ui.use((s) => s.selecting)
 
-  if (tool === 'move')
-    return [
-      'Drag to orbit · right-drag to pan · hold Space with any tool',
-      'Drag to orbit · pinch to zoom',
-    ]
-  if (tool === 'brush')
-    return [
-      'Paint · hold Space or right-drag to orbit',
-      'Paint · two fingers to orbit',
-    ]
-  if (tool === 'erase')
-    return [
-      'Erase · hold Space or right-drag to orbit',
-      'Erase · two fingers to orbit',
-    ]
+  const { mod } = useMod()
+  const hint = TOOLS[tool].hint
+  if (hint) return hint(mod)
   if (status === 'loading' || status === 'error')
     return [LOADING[status], LOADING[status]]
   // Moving and encoding are one wait to the user: until the view is ready to click.
@@ -94,7 +83,7 @@ export function Status() {
               pill,
               'hocus:bg-neutral-200 bg-white font-medium text-neutral-950',
             )}>
-            Apply <kbd className={clsx(kbd, 'text-neutral-500')}>↵</kbd>
+            Apply <kbd className={clsx(kbd, 'text-neutral-500')}>space</kbd>
           </button>
         </span>
       )}

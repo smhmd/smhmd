@@ -59,8 +59,6 @@ export function IconButton({
 /** Compact icon buttons for list rows. */
 export const small = 'size-7! *:size-4!'
 
-export const Divider = () => <span className='mx-1 h-5 w-px bg-white/10' />
-
 type RangeProps = {
   label: string
   value: number

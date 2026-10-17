@@ -1,8 +1,8 @@
 import {
   Box3,
   Color,
-  DoubleSide,
   MathUtils,
+  MOUSE,
   Matrix4,
   type Mesh,
   type PerspectiveCamera,
@@ -24,7 +24,6 @@ const EPSILON = 0.01
 
 /** Linear view depth packed into 24 bits; alpha marks mesh pixels. */
 const DEPTH = new ShaderMaterial({
-  side: DoubleSide,
   vertexShader: /* glsl */ `
     varying float vDepth;
     void main() {
@@ -41,7 +40,12 @@ const DEPTH = new ShaderMaterial({
     }`,
 })
 
-type Controls = { target: Vector3; enabled: boolean; update(): void }
+type Controls = {
+  target: Vector3
+  enabled: boolean
+  mouseButtons: { LEFT?: MOUSE | null; RIGHT?: MOUSE | null }
+  update(): void
+}
 
 export const view = {
   gl: null as WebGLRenderer | null,
@@ -54,28 +58,37 @@ export const view = {
   depth: new Float32Array(0),
   screen: new Float32Array(0),
   visible: new Uint8Array(0),
-  /** The last Smart Tool mask, in screen pixels. */
+  /** The last Smart Select mask, in screen pixels. */
   mask: new Uint8Array(0) as Uint8Array,
-  /** A copy of the last frame sent to the model, for the SAM cam. */
+  /** The last textured frame, for the model and the SAM Cam. */
   frame: null as ImageData | null,
   dirty: true,
-  /** Held Space: every tool orbits, like Figma's hand tool. */
-  space: false,
+  /** Held keys. ⌘ (Ctrl off Apple) turns every tool into the hand, like Figma's Space. */
+  hand: false,
+  shift: false,
+  /** The pointer over the canvas, in canvas pixels; null when it's elsewhere. */
+  pointer: null as readonly [number, number] | null,
+  /** The canvas only redraws on demand; call after changing anything imperatively. */
+  invalidate: () => {},
 }
 
 let targets: [WebGLRenderTarget, WebGLRenderTarget] | undefined
 
-/** Renders the current view twice (texture for SAM, depth for visibility) and projects every vertex. */
-export function capture() {
+/**
+ * Renders the view's depth for visibility and projects every vertex. With
+ * `rgb`, it also renders the textured view into `view.frame`, for SAM.
+ * Returns whether there was anything to capture yet.
+ */
+export function capture(rgb: boolean) {
   const { gl, camera, base } = view
-  if (!gl || !camera || !base || !data.geometry) return
+  if (!gl || !camera || !base || !data.geometry) return false
 
   const w = gl.domElement.clientWidth
   const h = gl.domElement.clientHeight
   targets ??= [new WebGLRenderTarget(1, 1), new WebGLRenderTarget(1, 1)]
-  const [rgb, z] = targets
-  rgb.texture.colorSpace = SRGBColorSpace
-  rgb.setSize(w, h)
+  const [color, z] = targets
+  color.texture.colorSpace = SRGBColorSpace
+  color.setSize(w, h)
   z.setSize(w, h)
 
   const pixels = new Uint8Array(w * h * 4)
@@ -86,14 +99,15 @@ export function capture() {
   const autoClear = gl.autoClear
   gl.autoClear = true // GizmoHelper turns it off between frames
 
-  base.material = data.materials
-  gl.setClearColor(BACKGROUND, 1)
-  gl.setRenderTarget(rgb)
-  gl.render(base, camera)
-  gl.readRenderTargetPixels(rgb, 0, 0, w, h, pixels)
+  if (rgb) {
+    base.material = data.materials
+    gl.setClearColor(BACKGROUND, 1)
+    gl.setRenderTarget(color)
+    gl.render(base, camera)
+    gl.readRenderTargetPixels(color, 0, 0, w, h, pixels)
+  }
 
-  // One slot per part, so hidden parts' emptied groups stay out of the depth pass too.
-  base.material = data.parts.map(() => DEPTH)
+  base.material = DEPTH
   gl.setClearColor(0, 0)
   gl.setRenderTarget(z)
   gl.render(base, camera)
@@ -127,8 +141,8 @@ export function capture() {
     dirty: false,
   })
   project()
-  view.frame = new ImageData(image.slice(), w, h)
-  return { data: image, width: w, height: h }
+  if (rgb) view.frame = new ImageData(image, w, h)
+  return true
 }
 
 function project() {
@@ -142,11 +156,8 @@ function project() {
   const mv = camera!.matrixWorldInverse.elements
   const screen = new Float32Array(n * 2)
   const visible = new Uint8Array(n)
-
-  // Hidden parts aren't in the depth pass, so they must never count as visible.
-  const shown = new Uint8Array(n)
-  for (const part of data.parts)
-    if (!part.hidden) shown.fill(1, part.start, part.start + part.count)
+  // What's hidden isn't in the depth pass, so it must never count as visible.
+  const { shown } = data
 
   for (let v = 0; v < n; v++) {
     if (!shown[v]) continue
@@ -167,7 +178,6 @@ function project() {
 }
 
 const at = (x: number, y: number) => (y | 0) * view.width + (x | 0)
-export const onMesh = (x: number, y: number) => view.depth[at(x, y)] < Infinity
 export const inMask = (x: number, y: number) => view.mask[at(x, y)] > 0
 
 /** Visible vertices for which `test(x, y)` holds. */
@@ -179,8 +189,30 @@ export function pick(test: (x: number, y: number) => boolean) {
   return out
 }
 
+/** World units per screen pixel at a point's depth, so a ring on screen becomes a reach in 3D. */
+export function pixel(point: Vector3) {
+  const camera = view.camera!
+  const depth = -point.clone().applyMatrix4(camera.matrixWorldInverse).z
+  return (
+    (2 * depth * Math.tan(MathUtils.degToRad(camera.fov) / 2)) / view.height
+  )
+}
+
+/** The visible vertex nearest a screen point, within `radius` pixels; -1 if none. */
+export function nearest(x: number, y: number, radius = 12) {
+  const { screen, visible } = view
+  let best = -1
+  let min = radius * radius
+  for (let v = 0; v < visible.length; v++) {
+    if (!visible[v]) continue
+    const d = (screen[v * 2] - x) ** 2 + (screen[v * 2 + 1] - y) ** 2
+    if (d < min) [best, min] = [v, d]
+  }
+  return best
+}
+
 /** Points the camera at a part (or the whole model), keeping the viewing angle. */
-export function frame(part?: Part) {
+export function fit(part?: Part) {
   const { camera, controls } = view
   const position = data.geometry?.getAttribute('position')
   if (!camera || !controls || !position) return
