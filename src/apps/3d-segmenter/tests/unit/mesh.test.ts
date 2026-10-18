@@ -52,6 +52,7 @@ describe('refresh', () => {
     expect(refresh(false)).toBe(true)
     expect(drawn()).toBe(data.parts[1].faces)
     expect(data.shown[0]).toBe(0)
+    expect(data.present[0]).toBe(0)
     expect(ghosted()).toBe(0)
   })
 
@@ -62,6 +63,8 @@ describe('refresh', () => {
     expect(drawn()).toBe(data.parts[1].faces)
     expect(ghosted()).toBe(faces)
     expect(data.shown[0]).toBe(0)
+    // Still there for a tool that reaches ghosts.
+    expect(data.present[0]).toBe(1)
   })
 
   test('X-ray keeps a live selection solid until it is applied', () => {

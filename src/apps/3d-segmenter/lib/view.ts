@@ -14,7 +14,7 @@ import {
   type WebGLRenderer,
 } from 'three'
 
-import type { Part } from './common'
+import type { Behavior, Part } from './common'
 import { data } from './mesh'
 
 const FAR = 16
@@ -51,8 +51,9 @@ export const view = {
   gl: null as WebGLRenderer | null,
   camera: null as PerspectiveCamera | null,
   controls: null as Controls | null,
-  /** The textured model, without overlays. */
+  /** The textured model, without overlays, and X-ray's ghosts of labels. */
   base: null as Mesh | null,
+  ghost: null as Mesh | null,
   width: 0,
   height: 0,
   depth: new Float32Array(0),
@@ -75,13 +76,14 @@ export const view = {
 let targets: [WebGLRenderTarget, WebGLRenderTarget] | undefined
 
 /**
- * Renders the view's depth for visibility and projects every vertex. With
- * `rgb`, it also renders the textured view into `view.frame`, for SAM.
- * Returns whether there was anything to capture yet.
+ * Renders the view's depth for visibility and projects every vertex, as the
+ * tool sees it: for one that reaches `ghosts`, X-ray's ghosts are solid. For
+ * one that needs the `image`, it also renders the textured view into
+ * `view.frame`, for SAM. Returns whether there was anything to capture yet.
  */
-export function capture(rgb: boolean) {
-  const { gl, camera, base } = view
-  if (!gl || !camera || !base || !data.geometry) return false
+export function capture({ image, ghosts }: Behavior) {
+  const { gl, camera, base, ghost } = view
+  if (!gl || !camera || !base || !ghost || !data.geometry) return false
 
   const w = gl.domElement.clientWidth
   const h = gl.domElement.clientHeight
@@ -93,37 +95,47 @@ export function capture(rgb: boolean) {
 
   const pixels = new Uint8Array(w * h * 4)
   const packed = new Uint8Array(w * h * 4)
-  const material = base.material
   const clear = gl.getClearColor(new Color())
   const alpha = gl.getClearAlpha()
   const autoClear = gl.autoClear
-  gl.autoClear = true // GizmoHelper turns it off between frames
+  // Cleared once per pass, so the meshes in it stack.
+  gl.autoClear = false
 
-  if (rgb) {
-    base.material = data.materials
-    gl.setClearColor(BACKGROUND, 1)
-    gl.setRenderTarget(color)
-    gl.render(base, camera)
-    gl.readRenderTargetPixels(color, 0, 0, w, h, pixels)
+  /** Renders `meshes` in `material` into `target`, and reads it back into `out`. */
+  const pass = (
+    target: WebGLRenderTarget,
+    meshes: Mesh[],
+    material: Mesh['material'],
+    out: Uint8Array,
+  ) => {
+    gl.setRenderTarget(target)
+    gl.clear()
+    for (const mesh of meshes) {
+      const own = mesh.material
+      mesh.material = material
+      gl.render(mesh, camera)
+      mesh.material = own
+    }
+    gl.readRenderTargetPixels(target, 0, 0, w, h, out)
   }
 
-  base.material = DEPTH
+  if (image) {
+    gl.setClearColor(BACKGROUND, 1)
+    pass(color, [base], data.materials, pixels)
+  }
   gl.setClearColor(0, 0)
-  gl.setRenderTarget(z)
-  gl.render(base, camera)
-  gl.readRenderTargetPixels(z, 0, 0, w, h, packed)
+  pass(z, ghosts ? [base, ghost] : [base], DEPTH, packed)
 
-  base.material = material
   gl.setRenderTarget(null)
   gl.setClearColor(clear, alpha)
   gl.autoClear = autoClear
 
   // WebGL rows start at the bottom; flip to image order.
-  const image = new Uint8ClampedArray(w * h * 4)
+  const frame = new Uint8ClampedArray(w * h * 4)
   const depth = new Float32Array(w * h)
   for (let y = 0; y < h; y++) {
     const row = (h - 1 - y) * w
-    image.set(pixels.subarray(row * 4, (row + w) * 4), y * w * 4)
+    frame.set(pixels.subarray(row * 4, (row + w) * 4), y * w * 4)
     for (let x = 0; x < w; x++) {
       const i = (row + x) * 4
       depth[y * w + x] = packed[i + 3]
@@ -140,12 +152,13 @@ export function capture(rgb: boolean) {
     mask: new Uint8Array(0),
     dirty: false,
   })
-  project()
-  if (rgb) view.frame = new ImageData(image, w, h)
+  project(ghosts ? data.present : data.shown)
+  if (image) view.frame = new ImageData(frame, w, h)
   return true
 }
 
-function project() {
+/** Projects every vertex in `mask` to the screen, and marks the ones in front. */
+function project(mask: Uint8Array) {
   const { camera, width: w, height: h, depth } = view
   const position = data.geometry!.getAttribute('position')
   const n = position.count
@@ -156,11 +169,10 @@ function project() {
   const mv = camera!.matrixWorldInverse.elements
   const screen = new Float32Array(n * 2)
   const visible = new Uint8Array(n)
-  // What's hidden isn't in the depth pass, so it must never count as visible.
-  const { shown } = data
 
+  // What isn't in the depth pass must never count as visible.
   for (let v = 0; v < n; v++) {
-    if (!shown[v]) continue
+    if (!mask[v]) continue
     const x = position.getX(v)
     const y = position.getY(v)
     const z = position.getZ(v)

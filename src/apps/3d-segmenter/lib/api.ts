@@ -35,19 +35,29 @@ function fresh() {
   if (view.dirty) api.settle()
 }
 
+/**
+ * After labels change. With X-ray, finished labels leave what's drawn, so the
+ * capture is stale: retake it now rather than when the camera next moves, or
+ * picking would wait for an orbit.
+ */
+function edited() {
+  if (view.dirty) api.settle()
+  else rehover()
+}
+
 /** A discrete label edit: one undo step, then everything derived from labels catches up. */
 function change(labels: () => void) {
   current().flush?.()
   edit.snapshot()
   labels()
   edit.recount()
-  rehover()
+  edited()
 }
 
 function history(step: () => void) {
   current().flush?.()
   step()
-  rehover()
+  edited()
 }
 
 function show(visible: (index: number) => boolean) {
@@ -113,8 +123,11 @@ export const api = {
     const before = current()
     before.flush?.()
     ui.set({ tool })
-    // Only Smart Select feeds the model, so catch it up on arrival.
-    if (current().image && !before.image) api.settle()
+    // The capture is shaped by what the tool sees: catch it up when that
+    // changes (the model's image for Smart Select, ghosts for the eraser).
+    const after = current()
+    if ((after.image && !before.image) || !after.ghosts !== !before.ghosts)
+      api.settle()
     else rehover()
   },
 
@@ -219,17 +232,21 @@ export const api = {
 
   settle() {
     clearTimeout(timer)
-    if (!capture(!!current().image)) return
+    if (!capture(current())) return
     current().settled?.()
     rehover()
   },
 
-  /** Enter: keeps the live selection. */
-  finish: selection.finish,
+  /** Space or Enter: keeps the live selection. */
+  finish() {
+    selection.finish()
+    edited()
+  },
 
   /** Esc: undoes the live selection as if it never happened, or else deselects the part. */
   cancel() {
     if (!selection.cancel()) ui.set({ part: -1 })
+    edited()
   },
 
   hover(x: number, y: number) {
@@ -269,13 +286,13 @@ export const api = {
     pressed = false
     fresh()
     current().release?.(x, y, how)
-    rehover()
+    edited()
   },
 
   abort() {
     pressed = false
     current().abort?.()
-    rehover()
+    edited()
   },
 
   export() {

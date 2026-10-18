@@ -92,6 +92,8 @@ export type Behavior = {
   sized?: boolean
   /** Needs the textured view, not only depth: what feeds the model. */
   image?: boolean
+  /** Reaches labels X-ray has turned to ghosts, as if X-ray were off: the eraser, whose job is labels. */
+  ghosts?: boolean
   /** Hovering, without buttons; null when the pointer leaves. */
   hover?(point: readonly [number, number] | null): void
   press?(x: number, y: number): void

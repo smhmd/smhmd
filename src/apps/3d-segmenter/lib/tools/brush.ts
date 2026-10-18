@@ -3,7 +3,7 @@ import { discard, paint, recount, snapshot, target } from '../edit'
 import { ui } from '../state'
 import { pick } from '../view'
 
-/** Labels the visible vertices inside the ring; the eraser labels them -1. */
+/** Labels the visible vertices inside the ring; the eraser labels them -1, ghosts included. */
 export function brush(erase: boolean): Behavior {
   let id = -1
   const drag = (x: number, y: number) => {
@@ -16,6 +16,7 @@ export function brush(erase: boolean): Behavior {
   return {
     gesture: 'stroke',
     sized: true,
+    ghosts: erase,
     press(x, y) {
       snapshot()
       id = erase ? -1 : target()

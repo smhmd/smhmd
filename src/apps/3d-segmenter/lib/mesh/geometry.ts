@@ -14,7 +14,9 @@ export const data = {
   preview: new BufferGeometry(),
   /** Every triangle, as loaded; `refresh` filters it into the two above. */
   triangles: new Uint32Array(0),
-  /** Per vertex: 1 when it can be seen, painted and selected. */
+  /** Per vertex: 1 when its part is shown, solid or ghosted. */
+  present: new Uint8Array(0),
+  /** Per vertex: 1 when it's drawn solid, so it can be seen, painted and selected. */
   shown: new Uint8Array(0),
   /** One textured material per part, matching the geometry's groups. */
   materials: [] as Material[],
@@ -43,17 +45,21 @@ export const data = {
  * Returns whether the drawn set changed size, i.e. the view needs a recapture.
  */
 export function refresh(xray: boolean) {
-  const { geometry, ghost, triangles, labels, parts, shown, base } = data
+  const { geometry, ghost, triangles, labels, parts, present, shown, base } =
+    data
   if (!geometry) return false
+  present.fill(0)
   shown.fill(0)
   for (const p of parts)
     if (!p.hidden)
-      for (let v = p.start; v < p.start + p.count; v++)
+      for (let v = p.start; v < p.start + p.count; v++) {
+        present[v] = 1
         shown[v] = +(
           !xray ||
           labels[v] === -1 ||
           (base !== null && base[v] !== labels[v])
         )
+      }
 
   const solid = geometry.index!.array as Uint32Array
   const faint = ghost.index!.array as Uint32Array

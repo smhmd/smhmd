@@ -30,6 +30,19 @@ test('brush paints, eraser erases, undo and redo step through', async ({
   expect(await labeled(page)).toBeLessThan(painted)
 })
 
+test('with X-ray, the eraser still reaches the labels it sees through', async ({
+  page,
+}) => {
+  await page.keyboard.press('x')
+  await expect.poll(() => page.evaluate(() => window.m.view.dirty)).toBe(false)
+  await paint(page, 'Cracker box')
+  const painted = await labeled(page)
+  expect(painted).toBeGreaterThan(0)
+  await page.keyboard.press('e')
+  await paint(page, 'Cracker box')
+  expect(await labeled(page)).toBeLessThan(painted)
+})
+
 test('mid-stroke, shortcuts wait and Esc cancels the stroke', async ({
   page,
 }) => {

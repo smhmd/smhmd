@@ -241,6 +241,7 @@ export async function parse(name: string, buffer: ArrayBuffer) {
     outline,
     preview,
     triangles,
+    present: new Uint8Array(count),
     shown: new Uint8Array(count),
     materials: sources.map((s) => material(s.material)),
     parts,

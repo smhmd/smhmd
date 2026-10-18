@@ -64,3 +64,21 @@ test('holding the hand key hides the preview, releasing brings it back', async (
   await page.keyboard.up('ControlOrMeta')
   expect(await previewed(page)).toBeGreaterThan(0)
 })
+
+// Regression: with X-ray, a finished fill leaves what's drawn, and picking
+// waited for the camera to move before it worked again.
+test('with X-ray, the next part previews right after a fill', async ({
+  page,
+}) => {
+  await page.keyboard.press('x')
+  await expect.poll(() => page.evaluate(() => window.m.view.dirty)).toBe(false)
+  const box = await on(page, 'Cracker box')
+  await page.mouse.move(box.x, box.y)
+  await page.keyboard.down('Shift')
+  await page.mouse.down()
+  await page.mouse.up()
+  await page.keyboard.up('Shift')
+  const can = await on(page, 'Coffee can')
+  await page.mouse.move(can.x, can.y)
+  expect(await previewed(page)).toBeGreaterThan(0)
+})

@@ -60,7 +60,12 @@ export default function Scene() {
           {shading === 'wireframe' && (
             <mesh geometry={geometry} material={WIRE} renderOrder={2} />
           )}
-          <mesh geometry={ghost} material={GHOST} renderOrder={3} />
+          <mesh
+            ref={(mesh) => void (view.ghost = mesh)}
+            geometry={ghost}
+            material={GHOST}
+            renderOrder={3}
+          />
           <mesh geometry={data.preview} material={PREVIEW} renderOrder={2} />
           <Outline mesh={mesh} />
           {grid && (
