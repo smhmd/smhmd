@@ -28,22 +28,6 @@ test.describe('on a phone', () => {
     await expect(cracker).toBeHidden()
   })
 
-  test('a fold’s own buttons open it, to show what they changed', async ({
-    page,
-  }) => {
-    await open(page)
-    await page.getByRole('button', { name: 'New Class' }).tap()
-    await expect(
-      page.getByRole('button', { name: 'box', exact: true }),
-    ).toBeVisible()
-
-    await page.getByRole('button', { name: 'Hide All Parts' }).tap()
-    await expect(page.getByText('Cracker box')).toBeVisible()
-    expect(
-      await page.evaluate(() => window.m.data.parts.every((p) => p.hidden)),
-    ).toBe(true)
-  })
-
   test('the View toolbar is a menu beside Open and Export', async ({
     page,
   }) => {

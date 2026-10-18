@@ -1,5 +1,3 @@
-import { createContext, useContext } from 'react'
-
 import { Accordion } from '@base-ui/react/accordion'
 import { Slider } from '@base-ui/react/slider'
 import { Tooltip } from '@base-ui/react/tooltip'
@@ -177,9 +175,6 @@ export function Section({
   )
 }
 
-/** Opens a fold by its value: what its header's own buttons call, so you see what they changed. */
-export const Reveal = createContext<(value: string) => void>(() => {})
-
 type FoldProps = {
   value: string
   title: string
@@ -201,7 +196,6 @@ export function Fold({
   className,
   children,
 }: FoldProps) {
-  const reveal = useContext(Reveal)
   return (
     <Accordion.Item
       value={value}
@@ -217,9 +211,7 @@ export function Fold({
             className='group-data-panel-open/fold:rotate-180 size-4 shrink-0 fill-neutral-500 transition-transform lg:hidden'
           />
         </Accordion.Trigger>
-        <div className='flex' onClick={() => reveal(value)}>
-          {action}
-        </div>
+        {action}
       </Accordion.Header>
       <Accordion.Panel className='h-(--accordion-panel-height) data-ending-style:h-0 data-starting-style:h-0 flex min-h-0 flex-col overflow-hidden transition-[height] duration-200 ease-out motion-reduce:transition-none lg:h-auto lg:flex-1'>
         {children}

@@ -7,7 +7,7 @@ import { useWide } from '../lib'
 import { AppIcon } from '../metadata'
 import { Classes } from './Classes'
 import { Parts } from './Parts'
-import { glass, Reveal } from './ui'
+import { glass } from './ui'
 
 /**
  * Classes and Parts. Docked on large screens, both open; on phones a floating
@@ -41,10 +41,8 @@ export function Sidebar() {
         multiple={wide}
         disabled={wide}
         className='flex min-h-0 flex-col lg:flex-1'>
-        <Reveal value={(value) => setOpen([value])}>
-          <Classes />
-          <Parts />
-        </Reveal>
+        <Classes />
+        <Parts />
       </Accordion.Root>
     </aside>
   )
