@@ -1,0 +1,3 @@
+# ONNX Runtime's WebAssembly (26 MB, over Workers' 25 MiB asset limit). Vite copies it
+# out of onnxruntime-web, but Transformers.js loads it from the jsDelivr CDN instead.
+assets/ort-wasm-*.wasm
