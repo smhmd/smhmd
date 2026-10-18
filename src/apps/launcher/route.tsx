@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react'
 import { Link } from 'react-router'
 
 import clsx from 'clsx'
@@ -180,13 +181,51 @@ const cta: Record<AppMetadata['type'], string> = {
   utility: 'Use',
 }
 
+/** Apps with a short looping clip in public/previews/<id>.mp4, played on hover/focus. */
+const PREVIEWS = new Set<string>(appIDs)
+
+function useHoverPreview(enabled: boolean) {
+  const ref = useRef<HTMLVideoElement>(null)
+  const [playing, setPlaying] = useState(false)
+  const play = () => {
+    const video = ref.current
+    if (!enabled || !video) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    video.currentTime = 0
+    video.play().catch(() => {})
+  }
+  const stop = () => {
+    setPlaying(false)
+    ref.current?.pause()
+  }
+  return {
+    playing,
+    video: {
+      ref,
+      onPlaying: () => setPlaying(true),
+    },
+    trigger: {
+      // mouse only: on touch, a tap opens the app anyway
+      onPointerEnter: (e: React.PointerEvent) =>
+        e.pointerType === 'mouse' && play(),
+      onPointerLeave: stop,
+      onFocus: (e: React.FocusEvent) =>
+        e.currentTarget.matches(':focus-visible') && play(),
+      onBlur: stop,
+    },
+  }
+}
+
 function AppCard({ app }: { app: AppMetadata }) {
   const Icon = app.Icon
+  const hasPreview = PREVIEWS.has(app.id)
+  const preview = useHoverPreview(hasPreview)
 
   return (
     <Link
       prefetch='intent'
       to={`/${app.id}`}
+      {...preview.trigger}
       className={clsx(
         'group/icon @container group', // group/icon enables icon animations
         'flex flex-col p-[2%]',
@@ -219,6 +258,24 @@ function AppCard({ app }: { app: AppMetadata }) {
           alt={`${app.name} — screenshot`}
           style={{ filter: app.wip ? 'url(#vignette)' : undefined }}
         />
+        {hasPreview ? (
+          <video
+            {...preview.video}
+            aria-hidden
+            tabIndex={-1}
+            muted
+            loop
+            playsInline
+            preload='none'
+            disablePictureInPicture
+            className={clsx(
+              'pointer-events-none absolute inset-0 size-full object-cover',
+              'transition-opacity duration-300',
+              preview.playing ? 'opacity-100' : 'opacity-0',
+            )}>
+            <source src={`/previews/${app.id}.webm`} type='video/webm' />
+          </video>
+        ) : null}
       </div>
 
       <div className='mt-[1.25cqh] flex items-center gap-[3cqw]'>
