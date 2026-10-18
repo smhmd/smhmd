@@ -45,7 +45,7 @@ Label 3D meshes per vertex, in the browser, and export them for [Supervisely](ht
 4. **Smart Select** sends the box and points to the worker and gets a 2D mask. Visible vertices inside it are labeled live, from a snapshot of the labels before the selection (`data.base`). Apply (Space or ↵) keeps it, Esc undoes it, and a new box starts the next one. Dashed guides help line up the box, and holding Space mid-drag moves it.
 5. **X-ray** turns labels into see-through ghosts that can't be painted over, so you can label what's behind them. A stroke or selection stays solid until it's done (mouse released or selection applied), then joins the ghosts.
 6. **While dragging**, shortcuts wait until the drag ends, so a stroke can't be cut in half; Esc cancels the drag itself. Over the floating controls the ring stays where it was, so dragging the size slider shows the new size, and scrolling there doesn't resize.
-7. **Parts** are the pieces the file came with; the geometry is never changed. Hovering a part outlines it; clicking selects it, and F fits it to view.
+7. **Parts** are the meshes the file came with, or, when it has just one (a PLY, an STL, a scan), its separate pieces, up to 64. The geometry is never changed. Hovering a part outlines it; clicking selects it, and F fits it to view.
 8. **Export** writes an ASCII per-vertex PLY (`class_id`, `object_id = -1`, class colors) and `meta.json`. Supervisely rejects binary PLY.
 
 Faces are front-only everywhere, including the depth pass: to reach a back face, orbit to it.

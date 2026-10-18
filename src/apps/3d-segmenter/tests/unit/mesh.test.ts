@@ -1,4 +1,5 @@
 import { BoxGeometry, Color, SphereGeometry } from 'three'
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { beforeEach, describe, expect, test } from 'vitest'
 
 import { CLASSES } from '../../lib/common'
@@ -20,6 +21,15 @@ describe('parse', () => {
     expect(box.count + ball.count).toBe(data.labels.length)
     expect(box.faces + ball.faces).toBe(data.triangles.length)
     expect(data.labels.every((l) => l === -1)).toBe(true)
+  })
+
+  test('a single mesh lists its separate pieces, biggest first', async () => {
+    const { Left_box, Ball } = parts()
+    await load({ Scan: mergeGeometries([Left_box, Ball]) })
+    // The box's faces don't share vertices, but they touch: one piece.
+    expect(data.parts.map((p) => p.name)).toEqual(['Piece 1', 'Piece 2'])
+    expect(data.parts[0].count).toBeGreaterThan(data.parts[1].count)
+    expect(data.materials).toHaveLength(2)
   })
 
   test('scales the model into the unit sphere', () => {

@@ -77,6 +77,75 @@ function clean(mesh: Mesh) {
   return g.applyMatrix4(mesh.matrixWorld)
 }
 
+/** More pieces than this is scan noise, not parts worth listing. */
+const PIECES = 64
+
+/**
+ * A mesh's connected pieces, biggest first, or just the mesh when it's one
+ * piece or too many. Welded by position, so seams don't split a piece.
+ */
+function split(geometry: BufferGeometry) {
+  const index = geometry.index!.array
+  const p = geometry.getAttribute('position')
+  const n = p.count
+  const root = Int32Array.from({ length: n }, (_, v) => v)
+  const find = (v: number) => {
+    while (root[v] !== v) v = root[v] = root[root[v]]
+    return v
+  }
+  const join = (a: number, b: number) => (root[find(a)] = find(b))
+
+  // Quantized to 1e-4 of the radius around the center: 15 bits an axis.
+  geometry.computeBoundingSphere()
+  const { center, radius } = geometry.boundingSphere!
+  const q = (c: number, o: number) =>
+    Math.round(((c - o) / radius) * 1e4) + 16384
+  const first = new Map<number, number>()
+  for (let v = 0; v < n; v++) {
+    const key =
+      (q(p.getX(v), center.x) * 32768 + q(p.getY(v), center.y)) * 32768 +
+      q(p.getZ(v), center.z)
+    const twin = first.get(key)
+    if (twin === undefined) first.set(key, v)
+    else join(v, twin)
+  }
+  for (let t = 0; t < index.length; t += 3) {
+    join(index[t], index[t + 1])
+    join(index[t], index[t + 2])
+  }
+
+  const groups = new Map<number, number[]>()
+  for (let v = 0; v < n; v++) {
+    const r = find(v)
+    if (!groups.has(r)) groups.set(r, [])
+    groups.get(r)!.push(v)
+  }
+  if (groups.size < 2 || groups.size > PIECES) return [geometry]
+
+  const remap = new Int32Array(n)
+  return [...groups.values()]
+    .sort((a, b) => b.length - a.length)
+    .map((vertices) => {
+      const piece = new BufferGeometry()
+      vertices.forEach((v, i) => (remap[v] = i))
+      for (const [name, a] of Object.entries(geometry.attributes)) {
+        const out = new Float32Array(vertices.length * a.itemSize)
+        vertices.forEach((v, i) => {
+          for (let k = 0; k < a.itemSize; k++)
+            out[i * a.itemSize + k] = a.getComponent(v, k)
+        })
+        piece.setAttribute(name, new BufferAttribute(out, a.itemSize))
+      }
+      const own = find(vertices[0])
+      const faces: number[] = []
+      for (let t = 0; t < index.length; t += 3)
+        if (find(index[t]) === own)
+          faces.push(remap[index[t]], remap[index[t + 1]], remap[index[t + 2]])
+      piece.setIndex(faces)
+      return piece
+    })
+}
+
 function material(source: Material | Material[]) {
   const m = (Array.isArray(source) ? source[0] : source) as Material & {
     map?: Texture | null
@@ -98,7 +167,26 @@ export async function parse(name: string, buffer: ArrayBuffer) {
   root.traverse((o) => (o as Mesh).isMesh && meshes.push(o as Mesh))
   if (!meshes.length) throw new Error(`No meshes in ${name}`)
 
-  const pieces = meshes.map(clean)
+  // GLTFLoader swaps spaces for underscores in node names.
+  const named = (mesh: Mesh, i: number) =>
+    mesh.name.replaceAll('_', ' ') || `Part ${i + 1}`
+  let sources = meshes.map((mesh, i) => ({
+    geometry: clean(mesh),
+    name: named(mesh, i),
+    material: mesh.material,
+  }))
+  // A single mesh (often a PLY, STL or scan) lists its separate pieces instead.
+  if (sources.length === 1) {
+    const [only] = sources
+    const pieces = split(only.geometry)
+    if (pieces.length > 1)
+      sources = pieces.map((geometry, i) => ({
+        ...only,
+        geometry,
+        name: `Piece ${i + 1}`,
+      }))
+  }
+  const pieces = sources.map((s) => s.geometry)
   const geometry = mergeGeometries(pieces, true)
   geometry.computeBoundingSphere()
   const { center, radius } = geometry.boundingSphere!
@@ -117,8 +205,7 @@ export async function parse(name: string, buffer: ArrayBuffer) {
   let start = 0
   const parts = pieces.map((piece, i) => {
     const n = piece.getAttribute('position').count
-    // GLTFLoader swaps spaces for underscores in node names.
-    const name = meshes[i].name.replaceAll('_', ' ') || `Part ${i + 1}`
+    const { name } = sources[i]
     const faces = piece.index!.count
     const part = { name, start, count: n, faces, hidden: false, cls: -1 }
     start += n
@@ -140,11 +227,9 @@ export async function parse(name: string, buffer: ArrayBuffer) {
   preview.setIndex(new BufferAttribute(triangles.slice(), 1))
   preview.setDrawRange(0, 0)
 
-  const sources = new Set(meshes.flatMap((m) => [m.material].flat()))
+  const used = new Set(meshes.flatMap((m) => [m.material].flat()))
   const maps = new Set(
-    [...sources]
-      .map((m) => (m as { map?: Texture | null }).map)
-      .filter(Boolean),
+    [...used].map((m) => (m as { map?: Texture | null }).map).filter(Boolean),
   )
   const box = geometry.boundingBox!
 
@@ -157,7 +242,7 @@ export async function parse(name: string, buffer: ArrayBuffer) {
     preview,
     triangles,
     shown: new Uint8Array(count),
-    materials: meshes.map((m) => material(m.material)),
+    materials: sources.map((s) => material(s.material)),
     parts,
     labels: new Int32Array(count).fill(-1),
     center: center.toArray(),
@@ -166,7 +251,7 @@ export async function parse(name: string, buffer: ArrayBuffer) {
       format: name.split('.').pop()!.toUpperCase(),
       bytes: buffer.byteLength,
       size: box.max.clone().sub(box.min).multiplyScalar(radius).toArray(),
-      materials: sources.size,
+      materials: used.size,
       textures: maps.size,
     },
   })
