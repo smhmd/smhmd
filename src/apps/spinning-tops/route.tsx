@@ -11,7 +11,7 @@ import { AppIcon, metadata } from './metadata'
 
 export const { meta, links } = generateHead({
   metadata,
-  icon: <AppIcon fill='transparent' padding={18} />,
+  icon: <AppIcon transparent padding={18} />,
   font: 'Orbitron',
 })
 

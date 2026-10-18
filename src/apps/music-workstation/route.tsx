@@ -37,7 +37,7 @@ import styles from './styles.css?url'
 
 export const { meta, links } = generateHead({
   metadata,
-  icon: <AppIcon fill='transparent' padding={13} wip={false} />,
+  icon: <AppIcon transparent padding={13} />,
   styles,
   links: SAMPLES_PREFETCH,
 })

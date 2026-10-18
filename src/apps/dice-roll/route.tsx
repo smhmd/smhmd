@@ -7,7 +7,7 @@ import { AppIcon, metadata } from './metadata'
 
 export const { meta, links } = generateHead({
   metadata,
-  icon: <AppIcon fill='transparent' padding={14} wip={false} />,
+  icon: <AppIcon transparent padding={14} />,
   font: `${DICE_FONT_NAME}:wght@700`, // &text=D0123456789.
 })
 

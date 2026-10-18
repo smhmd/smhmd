@@ -14,7 +14,7 @@ export const metadata: AppMetadata = {
 
 export function AppIcon(props: React.ComponentProps<typeof IconFrame>) {
   return (
-    <IconFrame fill='#979797' wip={metadata.wip} {...props}>
+    <IconFrame fill='#979797' {...props}>
       <defs colorInterpolationFilters='sRGB'>
         <filter id='darken'>
           <feComponentTransfer>

@@ -12,7 +12,7 @@ import styles from './styles.css?url'
 
 export const { meta, links } = generateHead({
   metadata,
-  icon: <AppIcon fill='transparent' padding={24} />,
+  icon: <AppIcon transparent padding={24} />,
   styles,
 })
 
@@ -35,7 +35,7 @@ export default function App() {
             <AppIcon
               aria-hidden
               padding={24}
-              fill='transparent'
+              transparent
               className='inline size-8 rotate-45 md:size-7'
             />{' '}
             Magnetizer
