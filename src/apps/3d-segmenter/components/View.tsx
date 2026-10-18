@@ -1,3 +1,4 @@
+import { Menu } from '@base-ui/react/menu'
 import { Toggle } from '@base-ui/react/toggle'
 import { ToggleGroup } from '@base-ui/react/toggle-group'
 import { Toolbar } from '@base-ui/react/toolbar'
@@ -5,15 +6,18 @@ import clsx from 'clsx'
 
 import {
   CenterFocus,
+  Check,
   Circle,
   FlipToBack,
   GridOn,
   Language,
   Texture,
+  ViewInAr,
 } from 'src/icons'
 
 import { api, data, type Shading, ui } from '../lib'
-import { button, Tip } from './ui'
+import { item } from './ClassMenu'
+import { button, island, Tip } from './ui'
 
 const on = 'aria-pressed:bg-white/12 aria-pressed:text-white'
 
@@ -29,9 +33,9 @@ const SHADING: {
 ]
 
 /**
- * How you're looking at the model, top right of the canvas: fitting it to
- * view, the overlays (X-ray, grid), and one shading at a time, as in
- * Blender's viewport header. On phones, below the Open/Export card.
+ * How you're looking at the model, top right of the canvas on large screens:
+ * fitting it to view, the overlays (X-ray, grid), and one shading at a time,
+ * as in Blender's viewport header. Phones get the same as a menu.
  */
 export function View() {
   const part = ui.use((s) => s.part)
@@ -42,7 +46,10 @@ export function View() {
   return (
     <Toolbar.Root
       aria-label='View'
-      className='absolute right-3 top-[4.5rem] flex items-center gap-1 rounded-xl bg-black/40 p-1 backdrop-blur-md lg:top-3'>
+      className={clsx(
+        island,
+        'absolute right-3 top-3 flex items-center gap-1 p-1 max-lg:hidden',
+      )}>
       <Tip label={part >= 0 ? 'Fit Part to View' : 'Fit to View'} keys='F'>
         <Toolbar.Button
           aria-label={part >= 0 ? 'Fit Part to View' : 'Fit to View'}
@@ -87,5 +94,79 @@ export function View() {
         ))}
       </ToggleGroup>
     </Toolbar.Root>
+  )
+}
+
+const check = 'ml-auto size-4 fill-current'
+
+/** The View toolbar as one menu, for phones, beside Open and Export. */
+export function ViewMenu() {
+  const part = ui.use((s) => s.part)
+  const xray = ui.use((s) => s.xray)
+  const grid = ui.use((s) => s.grid)
+  const shading = ui.use((s) => s.shading)
+
+  return (
+    <Menu.Root>
+      <Menu.Trigger
+        aria-label='View'
+        className={clsx(button, 'data-popup-open:bg-white/12')}>
+        <ViewInAr aria-hidden />
+      </Menu.Trigger>
+      <Menu.Portal>
+        <Menu.Positioner side='bottom' align='end' sideOffset={8}>
+          <Menu.Popup className={clsx(island, 'min-w-52 p-1.5 outline-none')}>
+            <Menu.Item
+              className={clsx(item, 'h-10')}
+              onClick={() => api.fit(data.parts[part])}>
+              <CenterFocus aria-hidden className='size-4 fill-current' />
+              {part >= 0 ? 'Fit Part to View' : 'Fit to View'}
+            </Menu.Item>
+            <Menu.CheckboxItem
+              className={clsx(item, 'h-10')}
+              checked={xray}
+              onCheckedChange={() => api.toggle('xray')}>
+              <FlipToBack aria-hidden className='size-4 fill-current' />
+              X-ray
+              <Menu.CheckboxItemIndicator className={check}>
+                <Check aria-hidden />
+              </Menu.CheckboxItemIndicator>
+            </Menu.CheckboxItem>
+            <Menu.CheckboxItem
+              className={clsx(item, 'h-10')}
+              checked={grid}
+              onCheckedChange={() => api.toggle('grid')}>
+              <GridOn aria-hidden className='size-4 fill-current' />
+              Grid
+              <Menu.CheckboxItemIndicator className={check}>
+                <Check aria-hidden />
+              </Menu.CheckboxItemIndicator>
+            </Menu.CheckboxItem>
+            <Menu.Separator className='bg-white/8 mx-1 my-1.5 h-px' />
+            <Menu.Group>
+              <Menu.GroupLabel className='px-2 pb-1 pt-0.5 text-[11px] text-neutral-500'>
+                Shading
+              </Menu.GroupLabel>
+              <Menu.RadioGroup
+                value={shading}
+                onValueChange={(next) => api.setShading(next as Shading)}>
+                {SHADING.map(({ id, label, Icon }) => (
+                  <Menu.RadioItem
+                    key={id}
+                    value={id}
+                    className={clsx(item, 'h-10')}>
+                    <Icon aria-hidden className='size-4 fill-current' />
+                    {label}
+                    <Menu.RadioItemIndicator className={check}>
+                      <Check aria-hidden />
+                    </Menu.RadioItemIndicator>
+                  </Menu.RadioItem>
+                ))}
+              </Menu.RadioGroup>
+            </Menu.Group>
+          </Menu.Popup>
+        </Menu.Positioner>
+      </Menu.Portal>
+    </Menu.Root>
   )
 }

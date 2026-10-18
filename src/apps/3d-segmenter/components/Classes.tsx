@@ -5,13 +5,14 @@ import clsx from 'clsx'
 import { Add, Close, ColorReset, Visibility, VisibilityOff } from 'src/icons'
 
 import { api, type Cls, data, doc } from '../lib'
-import { IconButton, Section, small, Tip, Trailing } from './ui'
+import { Fold, IconButton, small, Tip, Trailing } from './ui'
 
 export function Classes() {
   const { classes, active } = doc.use()
 
   return (
-    <Section
+    <Fold
+      value='classes'
       title='Classes'
       unit='vertices'
       className='shrink-0'
@@ -26,7 +27,7 @@ export function Classes() {
         ))}
       </ul>
       <Progress classes={classes} />
-    </Section>
+    </Fold>
   )
 }
 

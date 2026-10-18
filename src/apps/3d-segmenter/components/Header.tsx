@@ -7,6 +7,7 @@ import { Download, Upload } from 'src/icons'
 import { api, FORMATS } from '../lib'
 import { Toolbar } from './Toolbar'
 import { glass, Tip } from './ui'
+import { ViewMenu } from './View'
 
 const action = clsx(
   'flex h-9 min-w-9 cursor-pointer items-center justify-center rounded-lg text-xs transition-colors lg:h-8 lg:px-3',
@@ -15,17 +16,19 @@ const action = clsx(
   '[&_svg]:size-5 [&_svg]:fill-current',
 )
 
-/** The toolbar on large screens; on phones the tools and Open/Export float over the canvas instead. */
+/** The toolbar on large screens; on phones the tools float at the bottom, and View, Open and Export top right. */
 export function Header() {
   return (
     <header className='max-lg:contents lg:col-start-2 lg:row-start-1 lg:flex lg:items-center lg:justify-center'>
       <Toolbar />
-      <Actions
+      <div
         className={clsx(
           glass,
-          'absolute right-3 top-3 rounded-2xl p-1.5 lg:hidden',
-        )}
-      />
+          'absolute right-3 top-3 flex gap-1 p-1 lg:hidden',
+        )}>
+        <ViewMenu />
+        <Actions />
+      </div>
     </header>
   )
 }

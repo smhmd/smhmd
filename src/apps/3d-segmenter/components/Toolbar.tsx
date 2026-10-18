@@ -15,15 +15,17 @@ export function Toolbar() {
       aria-label='Tools'
       className={clsx(
         glass,
-        'flex items-center gap-1',
-        // Right-aligned on phones to clear the app drawer button.
-        'max-lg:absolute max-lg:bottom-4 max-lg:right-4 max-lg:rounded-2xl max-lg:p-1.5',
-        'sm:max-lg:left-1/2 sm:max-lg:right-auto sm:max-lg:-translate-x-1/2',
+        'flex items-center',
+        // On phones, the rest of the bottom edge beside the app drawer button;
+        // centered on tablets, where there's room.
+        'max-lg:absolute max-lg:bottom-3.5 max-lg:p-1',
+        'max-sm:left-[4.25rem] max-sm:right-3',
+        'sm:max-lg:bottom-6 sm:max-lg:left-1/2 sm:max-lg:-translate-x-1/2',
       )}>
       <ToggleGroup
         value={[tool]}
         onValueChange={([next]) => next && api.setTool(next as Tool)}
-        className='flex gap-1'>
+        className='flex flex-1 justify-between gap-1'>
         {Object.entries(TOOLS).map(([id, { label, keys, Icon }]) => (
           <Tip
             key={id}

@@ -48,5 +48,6 @@ export { default as Back } from '@material-icons/svg/svg/subdirectory_arrow_left
 export { default as Texture } from '@material-icons/svg/svg/texture/round.svg?react'
 export { default as Undo } from '@material-icons/svg/svg/undo/round.svg?react'
 export { default as Upload } from '@material-icons/svg/svg/upload_file/round.svg?react'
+export { default as ViewInAr } from '@material-icons/svg/svg/view_in_ar/round.svg?react'
 export { default as Visibility } from '@material-icons/svg/svg/visibility/round.svg?react'
 export { default as VisibilityOff } from '@material-icons/svg/svg/visibility_off/round.svg?react'

@@ -7,7 +7,7 @@ import { CenterFocus, Sell, Visibility, VisibilityOff } from 'src/icons'
 
 import { api, doc, type Part, ui } from '../lib'
 import { ClassMenu, item } from './ClassMenu'
-import { button, IconButton, Section, small, Tip, Trailing } from './ui'
+import { button, Fold, IconButton, small, Tip, Trailing } from './ui'
 
 /**
  * The model's own hierarchy, after Figma's layers panel: a hidden part dims
@@ -19,10 +19,11 @@ export function Parts() {
   const anyHidden = parts.some((p) => p.hidden)
 
   return (
-    <Section
+    <Fold
+      value='parts'
       title='Parts'
       unit='vertices'
-      className='border-white/6 flex-1 border-t max-lg:hidden'
+      className='border-white/6 border-t lg:flex-1'
       action={
         // One switch for the whole list: shows everything if anything is hidden, else hides it all.
         <IconButton
@@ -36,12 +37,12 @@ export function Parts() {
           )}
         </IconButton>
       }>
-      <ul className='no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-1.5 pb-1.5'>
+      <ul className='no-scrollbar min-h-0 overflow-y-auto overscroll-contain px-1.5 pb-1.5 max-lg:max-h-[45dvh] lg:flex-1'>
         {parts.map((part, i) => (
           <Row key={part.start} part={part} index={i} />
         ))}
       </ul>
-    </Section>
+    </Fold>
   )
 }
 

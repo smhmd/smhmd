@@ -1,12 +1,20 @@
+import { createContext, useContext } from 'react'
+
+import { Accordion } from '@base-ui/react/accordion'
 import { Slider } from '@base-ui/react/slider'
 import { Tooltip } from '@base-ui/react/tooltip'
 import clsx from 'clsx'
 
+import { ArrowDown } from 'src/icons'
 import type { Props } from 'src/lib/types'
 
-/** Floating surfaces on phones; docked panels are flat on large screens. */
+/** Every island floating over the canvas shares one surface. */
+export const island =
+  'rounded-2xl border border-white/8 bg-neutral-900/80 shadow-2xl shadow-black/40 backdrop-blur-xl'
+
+/** The same surface for panels that float on phones and dock, flat, on large screens. */
 export const glass =
-  'max-lg:border max-lg:border-white/8 max-lg:bg-neutral-900/80 max-lg:shadow-2xl max-lg:shadow-black/40 max-lg:backdrop-blur-xl'
+  'max-lg:rounded-2xl max-lg:border max-lg:border-white/8 max-lg:bg-neutral-900/80 max-lg:shadow-2xl max-lg:shadow-black/40 max-lg:backdrop-blur-xl'
 
 export const button = clsx(
   'grid size-9 shrink-0 cursor-pointer place-items-center rounded-lg lg:size-8',
@@ -144,6 +152,9 @@ type SectionProps = Props<
   { title: string; unit?: string; action?: React.ReactNode }
 >
 
+const heading = 'text-xs font-medium text-neutral-400'
+const unitText = 'font-normal text-neutral-500'
+
 export function Section({
   title,
   unit,
@@ -155,15 +166,64 @@ export function Section({
   return (
     <section className={clsx('flex min-h-0 flex-col', className)} {...props}>
       <header className='flex h-9 shrink-0 items-center justify-between pl-3 pr-1.5'>
-        <h2 className='text-xs font-medium text-neutral-400'>
+        <h2 className={heading}>
           {title}
-          {unit && (
-            <span className='font-normal text-neutral-500'> ({unit})</span>
-          )}
+          {unit && <span className={unitText}> ({unit})</span>}
         </h2>
         {action}
       </header>
       {children}
     </section>
+  )
+}
+
+/** Opens a fold by its value: what its header's own buttons call, so you see what they changed. */
+export const Reveal = createContext<(value: string) => void>(() => {})
+
+type FoldProps = {
+  value: string
+  title: string
+  unit?: string
+  action?: React.ReactNode
+  className?: string
+  children: React.ReactNode
+}
+
+/**
+ * A Section that folds away on phones, inside an Accordion.Root; on large
+ * screens its root is disabled and keeps it open, so it reads as a Section.
+ */
+export function Fold({
+  value,
+  title,
+  unit,
+  action,
+  className,
+  children,
+}: FoldProps) {
+  const reveal = useContext(Reveal)
+  return (
+    <Accordion.Item
+      value={value}
+      className={clsx('flex min-h-0 flex-col', className)}>
+      <Accordion.Header className='flex h-10 shrink-0 items-center pr-1.5 lg:h-9'>
+        <Accordion.Trigger className='group/fold flex h-full min-w-0 flex-1 items-center gap-1 rounded-lg pl-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/40 lg:cursor-default'>
+          <span className={clsx(heading, 'truncate')}>
+            {title}
+            {unit && <span className={unitText}> ({unit})</span>}
+          </span>
+          <ArrowDown
+            aria-hidden
+            className='group-data-panel-open/fold:rotate-180 size-4 shrink-0 fill-neutral-500 transition-transform lg:hidden'
+          />
+        </Accordion.Trigger>
+        <div className='flex' onClick={() => reveal(value)}>
+          {action}
+        </div>
+      </Accordion.Header>
+      <Accordion.Panel className='h-(--accordion-panel-height) data-ending-style:h-0 data-starting-style:h-0 flex min-h-0 flex-col overflow-hidden transition-[height] duration-200 ease-out motion-reduce:transition-none lg:h-auto lg:flex-1'>
+        {children}
+      </Accordion.Panel>
+    </Accordion.Item>
   )
 }

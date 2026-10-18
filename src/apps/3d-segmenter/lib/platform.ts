@@ -26,3 +26,20 @@ export function useMod() {
     shift: (k: string) => (mac ? `⇧⌘${k}` : `Ctrl+Shift+${k}`),
   }
 }
+
+/** Tailwind's `lg`: panels dock on large screens and float on phones. */
+const WIDE = '(min-width: 64rem)'
+
+const media = (change: () => void) => {
+  const query = matchMedia(WIDE)
+  query.addEventListener('change', change)
+  return () => query.removeEventListener('change', change)
+}
+
+/** Whether the screen is large. The server renders the large layout. */
+export const useWide = () =>
+  useSyncExternalStore(
+    media,
+    () => matchMedia(WIDE).matches,
+    () => true,
+  )

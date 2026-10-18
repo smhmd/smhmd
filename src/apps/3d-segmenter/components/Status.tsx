@@ -95,8 +95,8 @@ export function Status() {
         className={clsx(
           'absolute flex max-w-[calc(100%-2rem)] items-center gap-2 overflow-hidden bg-black py-1.5 pl-3.5 text-xs text-neutral-200 shadow-lg shadow-black/40',
           selecting || retry ? 'pr-1.5' : 'pr-3.5',
-          'max-lg:bottom-20 max-lg:right-4 sm:max-lg:left-1/2 sm:max-lg:right-auto sm:max-lg:-translate-x-1/2',
-          'lg:bottom-3 lg:left-1/2 lg:-translate-x-1/2',
+          // Centered, above the tools on phones and tablets.
+          'bottom-[4.5rem] left-1/2 -translate-x-1/2 sm:bottom-24 lg:bottom-3',
         )}>
         <motion.span
           layout='position'

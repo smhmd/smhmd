@@ -34,15 +34,11 @@ const keys = ({ mod, key, shift }: ReturnType<typeof useMod>) => [
 
 const heading = 'mt-5 mb-2 text-xs font-medium text-neutral-500'
 
-/** Panel footer button: what this is, how to drive it, and the sample's credit. */
-export function About({ className }: { className?: string }) {
+/** The right panel's footer button: what this is, how to drive it, and the sample's credit. Large screens only. */
+export function About() {
   const mod = useMod()
   return (
-    <footer
-      className={clsx(
-        'border-white/6 flex h-10 shrink-0 items-center justify-end border-t px-1.5',
-        className,
-      )}>
+    <footer className='border-white/6 flex h-10 shrink-0 items-center justify-end border-t px-1.5'>
       <Dialog.Root>
         <Tip label='About 3D Segmenter'>
           <Dialog.Trigger

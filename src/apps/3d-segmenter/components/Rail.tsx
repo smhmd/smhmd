@@ -6,7 +6,7 @@ import { Redo, Undo } from 'src/icons'
 import { api, doc, type Doc, ui, useMod } from '../lib'
 import { ClassMenu } from './ClassMenu'
 import { TOOLS } from './tools'
-import { button, IconButton, Range, small, Tip } from './ui'
+import { button, IconButton, island, Range, small, Tip } from './ui'
 
 /** Procreate's sidebar: the ring's size, the class you're labeling with, then undo and redo. */
 export function Rail() {
@@ -18,9 +18,10 @@ export function Rail() {
   return (
     <div
       className={clsx(
-        'absolute left-3 flex flex-col items-center gap-1.5 rounded-xl bg-black/40 p-1.5 backdrop-blur-md',
-        // Centered on large screens; on phones, above the app drawer button and clear of the class card.
-        'bottom-20 lg:bottom-auto lg:top-1/2 lg:-translate-y-1/2',
+        island,
+        'absolute left-3 flex flex-col items-center gap-1.5 p-1.5',
+        // Centered on large screens; on phones, above the status and the tools.
+        'bottom-28 lg:bottom-auto lg:top-1/2 lg:-translate-y-1/2',
       )}>
       {/* Always there, like Procreate's: muted outside the brush and eraser, but still adjustable. */}
       <Tip label={size ?? 'Brush Size'} keys='[ ]'>

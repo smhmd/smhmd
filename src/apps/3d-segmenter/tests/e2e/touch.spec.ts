@@ -63,3 +63,53 @@ test('in Smart Select, two fingers orbit and pinch, and the first finger’s box
   await touch('touchEnd', [])
   expect((await camera()).distance).toBeLessThan(before)
 })
+
+test('the ring shows for the tool’s own finger, not while navigating', async ({
+  page,
+  context,
+}) => {
+  await open(page)
+  await page.evaluate(() => window.m.api.setTool('brush'))
+  const cdp = await context.newCDPSession(page)
+  const touch = (
+    type: 'touchStart' | 'touchMove' | 'touchEnd',
+    points: [number, number][],
+  ) =>
+    cdp.send('Input.dispatchTouchEvent', {
+      type,
+      touchPoints: points.map(([x, y], id) => ({ x, y, id })),
+    })
+  const ring = () =>
+    page.evaluate(
+      () =>
+        !document.querySelector<HTMLElement>('[class*="in-data-hand:hidden"]')!
+          .hidden,
+    )
+
+  await touch('touchStart', [[150, 420]])
+  await touch('touchMove', [[160, 420]])
+  expect(await ring()).toBe(true)
+  // A second finger makes it navigation.
+  await touch('touchStart', [
+    [160, 420],
+    [250, 420],
+  ])
+  await touch('touchMove', [
+    [170, 420],
+    [260, 420],
+  ])
+  expect(await ring()).toBe(false)
+  await touch('touchEnd', [])
+
+  // So does a drag that starts on the gizmo, even once it leaves it.
+  const gizmo = await page.evaluate(() => {
+    const r = window.m.view.gl!.domElement.getBoundingClientRect()
+    const [mx, my] = window.m.gizmoMargin(r.width)
+    return [r.right - mx, r.bottom - my] as [number, number]
+  })
+  await touch('touchStart', [gizmo])
+  for (let i = 1; i <= 5; i++)
+    await touch('touchMove', [[gizmo[0] - i * 30, gizmo[1] - i * 20]])
+  expect(await ring()).toBe(false)
+  await touch('touchEnd', [])
+})
