@@ -14,17 +14,17 @@ export const metadata: AppMetadata = {
 
 export function AppIcon(props: React.ComponentProps<typeof IconFrame>) {
   return (
-    <IconFrame fill='#222' {...props}>
+    <IconFrame fill='#18212F' {...props}>
       <g
         fill='none'
         className='group-act/icon:rotate-180 origin-center transition-transform duration-500'>
-        <path fill='#ff4d71' d='m71.01 29.92-20.93 19.2-28.24-7L42.8 21.95z' />
+        <path fill='#FFD166' d='m71.01 29.92-20.93 19.2-28.24-7L42.8 21.95z' />
         <path
-          fill='#ab1a37'
+          fill='#E76F51'
           d='m29.48 70.04-7.47-27.88 28.07 6.96 6.95 29.07z'
         />
         <path
-          fill='#dc143c'
+          fill='#3B86FF'
           d='M78.04 58.06 71 29.92l-20.93 19.2 6.95 29.07z'
         />
         <g stroke='white'>
