@@ -189,7 +189,9 @@ export async function parse(name: string, buffer: ArrayBuffer) {
   const pieces = sources.map((s) => s.geometry)
   const geometry = mergeGeometries(pieces, true)
   geometry.computeBoundingSphere()
-  const { center, radius } = geometry.boundingSphere!
+  // A copy: moving the geometry recomputes its sphere in place.
+  const center = geometry.boundingSphere!.center.clone()
+  const { radius } = geometry.boundingSphere!
   geometry.translate(-center.x, -center.y, -center.z)
   geometry.scale(1 / radius, 1 / radius, 1 / radius)
   geometry.computeBoundingSphere()
