@@ -181,7 +181,7 @@ const cta: Record<AppMetadata['type'], string> = {
   utility: 'Use',
 }
 
-/** Apps with a short looping clip in public/previews/<id>.mp4, played on hover/focus. */
+/** Apps with a short looping clip in public/previews/<id>.webm, played on hover/focus. */
 const PREVIEWS = new Set<string>(appIDs)
 
 function useHoverPreview(enabled: boolean) {
