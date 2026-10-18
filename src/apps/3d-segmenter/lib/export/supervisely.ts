@@ -1,9 +1,12 @@
+import { uuid } from 'src/lib/utils'
+
 import type { Cls } from '../common'
 import { data } from '../mesh'
 import { ply } from './ply'
 import { type Entry, tar } from './tar'
 
-const key = () => crypto.randomUUID().replaceAll('-', '')
+// Not crypto.randomUUID: that only exists on HTTPS, and a phone on the dev server isn't.
+const key = () => uuid().replaceAll('-', '')
 const json = (value: unknown) => JSON.stringify(value, null, 2)
 
 /** Little-endian 32-bit unsigned integers, as Supervisely stores indices. */

@@ -1,5 +1,7 @@
 import { useLayoutEffect, useRef } from 'react'
 
+import { TAU } from 'src/lib/math'
+
 import {
   BACKGROUND,
   type Box,
@@ -40,7 +42,7 @@ export function SamCam() {
         style={{ background: BACKGROUND }}>
         <canvas ref={canvas} aria-hidden className='size-full object-contain' />
         {status in BUSY && (
-          <span className='absolute bottom-1.5 left-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-neutral-300'>
+          <span className='text-xxs absolute bottom-1.5 left-1.5 rounded bg-black/60 px-1.5 py-0.5 text-neutral-300'>
             {BUSY[status as keyof typeof BUSY]}
           </span>
         )}
@@ -87,7 +89,7 @@ function draw(
 
   for (const { x, y, positive } of points) {
     ctx.beginPath()
-    ctx.arc(x, y, radius, 0, Math.PI * 2)
+    ctx.arc(x, y, radius, 0, TAU)
     ctx.fillStyle = positive ? '#22c55e' : '#ef4444'
     ctx.fill()
     ctx.lineWidth = radius / 2

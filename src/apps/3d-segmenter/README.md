@@ -57,7 +57,8 @@ Faces are front-only everywhere, including the depth pass: to reach a back face,
 - **`capture` reads pixels synchronously** and is expensive. Never call it per frame.
 - **The model only runs in Smart Select**: the SAM Cam and encoding are skipped in other tools to save GPU time.
 - **Shading is one mode** (`ui.shading`): Solid, Textures or Wireframe. Wireframe keeps the surface as an invisible depth writer, so back edges stay hidden and the depth pass still sees the model.
-- **The gizmo takes its own presses**: gestures skip points where `onGizmo` is true. Move the gizmo only through `gizmoMargin`, which both the scene and that check read.
+- **The gizmo navigates in every tool**: gestures skip points where `onGizmo` is true, so a drag there orbits, and a tap on a head turns the camera (`Gizmo.tsx`; drei's own heads turn it on press). Move the gizmo only through `gizmoMargin`, which both the scene and that check read.
+- **The orbit controls see every pointer** (`navigation` in `api.ts`). A tool mid-gesture owns the left button and a single finger, so the controls ignore them but still track them: a second finger then makes a clean two-finger orbit and pinch. Never disable the controls to keep them out of a gesture; they'd lose track of that first finger.
 - **Nothing waits on EdgeTAM**: the other tools work while it downloads, and Smart Select prompts made before it's ready stay on screen and run once it is (`settled` in `tools/smart.ts`). The worker falls back from WebGPU to WebAssembly on its own.
 - **Errors go to the status**: `notify()` shows a passing one (a file that won't open, a view that failed); a model that never loaded offers Retry.
 - **Class hotkeys use `e.code` (`Digit1`–`Digit9`)**, so they work on any keyboard layout.

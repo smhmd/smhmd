@@ -30,10 +30,6 @@ const local = (e: React.PointerEvent) => {
   return [e.clientX - r.left, e.clientY - r.top] as const
 }
 
-const controls = (enabled: boolean) => {
-  if (view.controls) view.controls.enabled = enabled
-}
-
 const current = () => tools[ui.get().tool]
 
 /**
@@ -54,7 +50,6 @@ export function useGestures() {
   function end() {
     gesture.current = null
     if (draft.current) draft.current.hidden = true
-    controls(true)
   }
 
   // Mid-drag, shortcuts wait: switching tools, undoing or grabbing the hand
@@ -107,7 +102,7 @@ export function useGestures() {
       return end()
     }
     const [x, y] = local(e)
-    // The gizmo takes its own clicks: one press turns the camera, whatever the tool.
+    // The gizmo navigates, whatever the tool: a tap turns the camera, a drag orbits.
     if (view.hand || e.button !== 0 || !current().gesture || onGizmo(x, y))
       return
     gesture.current = {
@@ -119,7 +114,6 @@ export function useGestures() {
       last: [x, y],
       moving: false,
     }
-    controls(false)
     e.currentTarget.setPointerCapture(e.pointerId)
     api.press(x, y)
   }
@@ -132,8 +126,9 @@ export function useGestures() {
     if (!g && onGizmo(x, y)) return onPointerLeave()
     if (ring.current) {
       ring.current.style.translate = `${x}px ${y}px`
-      // Orbiting with the right or middle button: the ring or guides would lie.
-      ring.current.hidden = (e.buttons & 6) !== 0
+      // Only a hovering pointer or the tool's own drag shows it: a second
+      // finger, a drag from the gizmo or a right-drag navigates instead.
+      ring.current.hidden = e.buttons !== 0 && g?.id !== e.pointerId
     }
     if (!g && e.buttons === 0) api.hover(x, y)
     if (g?.id !== e.pointerId) return

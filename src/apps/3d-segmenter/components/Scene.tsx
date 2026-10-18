@@ -1,15 +1,12 @@
 import { useEffect, useLayoutEffect } from 'react'
 
-import {
-  GizmoHelper,
-  GizmoViewport,
-  Grid,
-  OrbitControls,
-} from '@react-three/drei'
+import { Grid, OrbitControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
+import type { PerspectiveCamera } from 'three'
 import {
   api,
   CLAY,
+  type Controls,
   data,
   doc,
   GHOST,
@@ -21,8 +18,8 @@ import {
   view,
   WIRE,
   HIDDEN,
-  gizmoMargin,
 } from '../lib'
+import { Gizmo } from './Gizmo'
 
 /** Solid is clay; Wireframe hides the surface but keeps it in the depth buffer, so back edges stay hidden. Textures uses the model's own. */
 const SURFACE = { solid: CLAY, wireframe: HIDDEN, textures: undefined }
@@ -31,11 +28,16 @@ export default function Scene() {
   const mesh = ui.use((s) => s.mesh)
   const shading = ui.use((s) => s.shading)
   const grid = ui.use((s) => s.grid)
-  const { gl, camera, controls, size, invalidate } = useThree()
+  const { gl, size, invalidate } = useThree()
+  // The Canvas's camera is a perspective one, and the controls are the
+  // OrbitControls below (`makeDefault`); useThree only knows the base types.
+  const camera = useThree((s) => s.camera) as PerspectiveCamera
+  const controls = useThree((s) => s.controls) as unknown as Controls | null
 
-  useEffect(() => {
-    Object.assign(view, { gl, camera, controls, invalidate })
-  }, [gl, camera, controls, invalidate])
+  useEffect(
+    () => api.connect({ gl, camera, controls, invalidate }),
+    [gl, camera, controls, invalidate],
+  )
 
   useEffect(() => api.fit(), [mesh, controls])
 
@@ -90,12 +92,7 @@ export default function Scene() {
         maxDistance={8}
         onChange={api.move}
       />
-      <GizmoHelper alignment='bottom-right' margin={gizmoMargin(size.width)}>
-        <GizmoViewport
-          axisColors={['#ff3b5c', '#4ade80', '#3b82f6']}
-          labelColor='#0b0b0c'
-        />
-      </GizmoHelper>
+      <Gizmo width={size.width} />
     </>
   )
 }

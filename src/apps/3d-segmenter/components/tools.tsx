@@ -45,7 +45,7 @@ export const TOOLS: Record<Tool, Look> = {
     Icon: Brush,
     hint: (mod) => [
       `Paint · scroll to resize · hold ${mod} to orbit or zoom`,
-      'Paint · two fingers to orbit',
+      'Paint · two fingers to orbit and zoom',
     ],
     size: 'Brush Size',
     ring: 'border-white/80',
@@ -56,7 +56,7 @@ export const TOOLS: Record<Tool, Look> = {
     Icon: ColorReset,
     hint: (mod) => [
       `Erase · scroll to resize · hold ${mod} to orbit or zoom`,
-      'Erase · two fingers to orbit',
+      'Erase · two fingers to orbit and zoom',
     ],
     size: 'Brush Size',
     ring: 'border-dashed border-white',

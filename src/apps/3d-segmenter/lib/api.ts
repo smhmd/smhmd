@@ -1,4 +1,6 @@
-import { MOUSE } from 'three'
+import { MOUSE, TOUCH } from 'three'
+
+import { clamp } from 'src/lib/math'
 
 import {
   type Cls,
@@ -27,6 +29,27 @@ let pressed = false
 function rehover() {
   if (view.pointer && !pressed)
     current().hover?.(view.hand ? null : view.pointer)
+}
+
+/**
+ * How the orbit controls read input. They see every pointer, so a second
+ * finger makes a clean two-finger orbit and pinch, but while a tool owns the
+ * pointer they leave its left button and single finger alone. With the hand
+ * held, left orbits and right pans, as in Move: the controls would pan on a
+ * ⌘- or Ctrl-drag otherwise.
+ */
+function navigation() {
+  const controls = view.controls
+  if (!controls) return
+  Object.assign(controls.mouseButtons, {
+    LEFT: pressed ? null : view.hand ? MOUSE.PAN : MOUSE.ROTATE,
+    RIGHT: view.hand ? MOUSE.ROTATE : MOUSE.PAN,
+  })
+  Object.assign(controls.touches, {
+    ONE: pressed ? null : TOUCH.ROTATE,
+    // A tool takes one finger, so two orbit and pinch; in Move, two pan and pinch.
+    TWO: current().gesture ? TOUCH.DOLLY_ROTATE : TOUCH.DOLLY_PAN,
+  })
 }
 
 let timer: ReturnType<typeof setTimeout> | undefined
@@ -81,6 +104,14 @@ function download(file: Blob, name: string) {
 
 /** Everything the UI can do; the only place outside a tool where state changes. */
 export const api = {
+  /** The canvas is up (or remade): picking and navigation can start. */
+  connect(
+    three: Pick<typeof view, 'gl' | 'camera' | 'controls' | 'invalidate'>,
+  ) {
+    Object.assign(view, three)
+    navigation()
+  },
+
   /** Loads the model and the sample; returns a cleanup that frees the model. */
   start() {
     api.retry()
@@ -124,6 +155,7 @@ export const api = {
     const before = current()
     before.flush?.()
     ui.set({ tool })
+    navigation()
     // The capture is shaped by what the tool sees: catch it up when that
     // changes (the model's image for Smart Select, ghosts for the eraser).
     const after = current()
@@ -133,7 +165,7 @@ export const api = {
   },
 
   setRadius(radius: number) {
-    ui.set({ radius: Math.min(160, Math.max(4, radius)) })
+    ui.set({ radius: clamp(4, radius, 160) })
     rehover()
   },
 
@@ -262,19 +294,13 @@ export const api = {
 
   /** The hand key or Shift went down or up. */
   held() {
-    // Orbit controls pan on a ⌘- or Ctrl-drag and orbit on the right button,
-    // so while the hand is held, swap them: left orbits and right pans, as with Move.
-    const buttons = view.controls?.mouseButtons
-    if (buttons)
-      Object.assign(buttons, {
-        LEFT: view.hand ? MOUSE.PAN : MOUSE.ROTATE,
-        RIGHT: view.hand ? MOUSE.ROTATE : MOUSE.PAN,
-      })
+    navigation()
     rehover()
   },
 
   press(x: number, y: number) {
     pressed = true
+    navigation()
     fresh()
     current().press?.(x, y)
   },
@@ -285,6 +311,7 @@ export const api = {
 
   release(x: number, y: number, how: Release) {
     pressed = false
+    navigation()
     fresh()
     current().release?.(x, y, how)
     edited()
@@ -292,6 +319,7 @@ export const api = {
 
   abort() {
     pressed = false
+    navigation()
     current().abort?.()
     edited()
   },

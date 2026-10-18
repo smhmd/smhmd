@@ -3,6 +3,7 @@ import {
   Color,
   MathUtils,
   MOUSE,
+  TOUCH,
   Matrix4,
   type Mesh,
   type PerspectiveCamera,
@@ -40,10 +41,10 @@ const DEPTH = new ShaderMaterial({
     }`,
 })
 
-type Controls = {
+export type Controls = {
   target: Vector3
-  enabled: boolean
   mouseButtons: { LEFT?: MOUSE | null; RIGHT?: MOUSE | null }
+  touches: { ONE?: TOUCH | null; TWO?: TOUCH | null }
   update(): void
 }
 
@@ -101,14 +102,17 @@ export function capture({ image, ghosts }: Behavior) {
   // Cleared once per pass, so the meshes in it stack.
   gl.autoClear = false
 
-  /** Renders `meshes` in `material` into `target`, and reads it back into `out`. */
+  /** Renders `meshes` in `material` over `background` into `target`, and reads it back into `out`. */
   const pass = (
     target: WebGLRenderTarget,
+    background: [string | number, number],
     meshes: Mesh[],
     material: Mesh['material'],
     out: Uint8Array,
   ) => {
     gl.setRenderTarget(target)
+    // After choosing the target: the clear color is converted for its color space.
+    gl.setClearColor(...background)
     gl.clear()
     for (const mesh of meshes) {
       const own = mesh.material
@@ -119,12 +123,8 @@ export function capture({ image, ghosts }: Behavior) {
     gl.readRenderTargetPixels(target, 0, 0, w, h, out)
   }
 
-  if (image) {
-    gl.setClearColor(BACKGROUND, 1)
-    pass(color, [base], data.materials, pixels)
-  }
-  gl.setClearColor(0, 0)
-  pass(z, ghosts ? [base, ghost] : [base], DEPTH, packed)
+  if (image) pass(color, [BACKGROUND, 1], [base], data.materials, pixels)
+  pass(z, [0, 0], ghosts ? [base, ghost] : [base], DEPTH, packed)
 
   gl.setRenderTarget(null)
   gl.setClearColor(clear, alpha)
