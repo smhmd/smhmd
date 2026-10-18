@@ -34,7 +34,10 @@ export function generateMeta({
     { property: 'og:site_name', content: SITE.siteName },
     { property: 'og:title', content: title },
     { property: 'og:description', content: description },
+    // JPEG, not AVIF: X, Facebook, LinkedIn, WhatsApp, Slack… don't render AVIF previews
     { property: 'og:image', content: image },
+    { property: 'og:image:secure_url', content: image },
+    { property: 'og:image:type', content: 'image/jpeg' },
     { property: 'og:image:alt', content: imageAlt },
     { property: 'og:image:width', content: '1200' },
     { property: 'og:image:height', content: '630' },
@@ -45,6 +48,7 @@ export function generateMeta({
     { name: 'twitter:title', content: title },
     { name: 'twitter:description', content: description },
     { name: 'twitter:image', content: image },
+    { name: 'twitter:image:alt', content: imageAlt },
     { name: 'twitter:site', content: TWITTER_HANDLE },
     { name: 'twitter:creator', content: TWITTER_HANDLE },
   ]
@@ -71,8 +75,8 @@ export function generateHead({
         title: `${metadata.name} | ${SITE.name}`,
         description: metadata.description,
         url: `${DOMAIN}/${metadata.id}`,
-        image: `${DOMAIN}/og/${metadata.id}.avif`,
-        imageAlt: `${metadata.name} screenshot`,
+        image: `${DOMAIN}/og/${metadata.id}.jpg`,
+        imageAlt: `${metadata.name}: ${metadata.summary}, on smhmd.dev by Simo`,
       }),
     links: () => {
       const result = [iconToFavicon(icon), ...links]

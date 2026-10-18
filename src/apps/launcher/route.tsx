@@ -16,7 +16,7 @@ export function meta() {
     description: SITE.description,
     url: DOMAIN,
     image: SITE.image,
-    imageAlt: SITE.siteName,
+    imageAlt: SITE.imageAlt,
   }).concat({ name: 'apple-mobile-web-app-title', content: SITE.name })
 }
 
