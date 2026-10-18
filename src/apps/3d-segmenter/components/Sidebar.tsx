@@ -16,7 +16,12 @@ export function Sidebar() {
         'lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:min-h-0',
       )}>
       <div className='flex h-12 shrink-0 items-center gap-2 px-3 max-lg:hidden'>
-        <AppIcon aria-hidden className='size-5 rounded-md' />
+        <AppIcon
+          aria-hidden
+          className='size-5 rounded-md'
+          transparent
+          padding={7}
+        />
         <h1 className='text-[13px] font-medium'>3D Segmenter</h1>
       </div>
       <Classes />

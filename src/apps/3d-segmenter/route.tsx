@@ -12,7 +12,7 @@ import { AppIcon, metadata } from './metadata'
 
 export const { meta, links } = generateHead({
   metadata,
-  icon: <AppIcon />,
+  icon: <AppIcon padding={7} transparent />,
   // The sample starts downloading with the page, before any script runs.
   links: [
     { rel: 'preload', href: SAMPLE.url, as: 'fetch', crossOrigin: 'anonymous' },
