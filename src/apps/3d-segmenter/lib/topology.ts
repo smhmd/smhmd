@@ -157,22 +157,24 @@ export function folds(sensitivity: number) {
 }
 
 /**
- * Vertices connected to `seed` through vertices that pass `enter`. A `wall`
- * vertex is taken but not spread from, so a fill reaches into a fold without
- * crossing it, and two neighboring fills leave no gap.
+ * Vertices connected to the seeds through vertices that pass `enter`. A
+ * `wall` vertex is taken but not spread from, so a fill reaches into a fold
+ * without crossing it, and two neighboring fills leave no gap. Seeds always
+ * spread.
  */
 export function flood(
-  seed: number,
+  seeds: number | number[],
   enter: (v: number) => boolean,
   wall: (v: number) => boolean = () => false,
 ) {
   const { offsets, links } = topology()
   const seen = new Uint8Array(data.labels.length)
-  const out = [seed]
-  seen[seed] = 1
+  const out = [seeds].flat()
+  const spread = out.length
+  for (const v of out) seen[v] = 1
   for (let i = 0; i < out.length; i++) {
     const a = out[i]
-    if (i > 0 && wall(a)) continue
+    if (i >= spread && wall(a)) continue
     for (let k = offsets[a]; k < offsets[a + 1]; k++) {
       const b = links[k]
       if (seen[b] || !enter(b)) continue

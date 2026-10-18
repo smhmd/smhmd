@@ -124,3 +124,15 @@ describe('Fill', () => {
     expect(ui.get()).toMatchObject({ past: 0, future: 0 })
   })
 })
+
+test('a big flat face fills from anywhere on it, far from its corners', async () => {
+  await load({ Quad: grid(1, () => 0) })
+  doc.set({ classes: CLASSES, active: 0, parts: data.parts })
+  ui.set({ radius: 20 })
+  edit.forget()
+  edit.sync()
+  look()
+  fill.press!(...at(0.3, -0.2))
+  fill.release!(...at(0.3, -0.2), release)
+  expect(labeled()).toBe(3)
+})

@@ -198,17 +198,47 @@ export function pixel(point: Vector3) {
   )
 }
 
-/** The visible vertex nearest a screen point, within `radius` pixels; -1 if none. */
-export function nearest(x: number, y: number, radius = 12) {
-  const { screen, visible } = view
-  let best = -1
-  let min = radius * radius
-  for (let v = 0; v < visible.length; v++) {
-    if (!visible[v]) continue
-    const d = (screen[v * 2] - x) ** 2 + (screen[v * 2 + 1] - y) ** 2
-    if (d < min) [best, min] = [v, d]
+/**
+ * The drawn triangle under a screen point, front-most, and its vertex nearest
+ * the point; null over the background. By triangle rather than by nearby
+ * vertex, so a big flat face is under the pointer even far from its corners.
+ */
+export function under(x: number, y: number) {
+  const { screen, camera } = view
+  const geometry = data.geometry!
+  const index = geometry.index!.array
+  const p = geometry.getAttribute('position').array
+  const m = camera!.matrixWorldInverse.elements
+  const depth = (v: number) =>
+    -(m[2] * p[v * 3] + m[6] * p[v * 3 + 1] + m[10] * p[v * 3 + 2] + m[14])
+  let hit: { face: [number, number, number]; seed: number } | null = null
+  let front = Infinity
+  for (let t = 0; t < geometry.drawRange.count; t += 3) {
+    const a = index[t]
+    const b = index[t + 1]
+    const c = index[t + 2]
+    const ax = screen[a * 2]
+    const bx = screen[b * 2]
+    const cx = screen[c * 2]
+    if ((x < ax && x < bx && x < cx) || (x > ax && x > bx && x > cx)) continue
+    const ay = screen[a * 2 + 1]
+    const by = screen[b * 2 + 1]
+    const cy = screen[c * 2 + 1]
+    if ((y < ay && y < by && y < cy) || (y > ay && y > by && y > cy)) continue
+    // Barycentric weights: all positive inside the triangle.
+    const d = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy)
+    const u = ((by - cy) * (x - cx) + (cx - bx) * (y - cy)) / d
+    const v = ((cy - ay) * (x - cx) + (ax - cx) * (y - cy)) / d
+    const w = 1 - u - v
+    if (!(u >= 0 && v >= 0 && w >= 0)) continue
+    const [da, db, dc] = [depth(a), depth(b), depth(c)]
+    const z = u * da + v * db + w * dc
+    if (da <= 0 || db <= 0 || dc <= 0 || z >= front) continue
+    front = z
+    const seed = u >= v && u >= w ? a : v >= w ? b : c
+    hit = { face: [a, b, c], seed }
   }
-  return best
+  return hit
 }
 
 /** Points the camera at a part (or the whole model), keeping the viewing angle. */
