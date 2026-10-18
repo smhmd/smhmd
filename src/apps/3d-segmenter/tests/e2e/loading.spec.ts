@@ -30,6 +30,7 @@ async function drop(page: Page, name: string, content: string) {
 declare global {
   interface Window {
     dragged: DataTransfer
+    lines: string[]
   }
 }
 
@@ -54,7 +55,7 @@ test('a file it can’t read says why, and keeps the model', async ({ page }) =>
   expect((await ui(page)).mesh).toBe(1)
 })
 
-test('a box drawn before Smart Select is ready waits, then runs', async ({
+test('a box drawn before Smart Select is ready waits, then runs, in one steady status', async ({
   page,
 }) => {
   // Ready only when the test says so.
@@ -64,18 +65,28 @@ test('a box drawn before Smart Select is ready waits, then runs', async ({
       `new BroadcastChannel('model').onmessage = () => postMessage({ type: 'ready' })`,
     ),
   )
+  // Every line the status shows from here on.
+  await page.evaluate(() => {
+    const status = document.querySelector('[role=status]')!
+    window.lines = [status.textContent!]
+    new MutationObserver(() => {
+      const line = status.textContent!
+      if (line !== window.lines.at(-1)) window.lines.push(line)
+    }).observe(status, { subtree: true, childList: true, characterData: true })
+  })
   const at = await on(page, 'Cracker box')
   await page.mouse.move(at.x - 40, at.y - 40)
   await page.mouse.down()
   await page.mouse.move(at.x + 40, at.y + 40, { steps: 5 })
   await page.mouse.up()
-  await expect(island(page)).toContainText(
-    'Selecting once Smart Select is ready',
-  )
   expect(await labeled(page)).toBe(0)
   await page.evaluate(() => new BroadcastChannel('model').postMessage('ready'))
   await expect.poll(() => labeled(page)).toBeGreaterThan(0)
   expect((await ui(page)).selecting).toBe(true)
+  const lines = await page.evaluate(() => window.lines)
+  expect(lines).toHaveLength(2)
+  expect(lines[0]).toContain('Loading Smart Select')
+  expect(lines[1]).toContain('Click to add')
 })
 
 test('a model that won’t load offers a retry', async ({ page }) => {

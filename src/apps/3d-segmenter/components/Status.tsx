@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import clsx from 'clsx'
 import { MotionConfig, motion } from 'motion/react'
 
-import { api, prompts, ui, useMod } from '../lib'
+import { api, ui, useMod } from '../lib'
 import { TOOLS } from './tools'
 
 type Tone = 'ok' | 'busy' | 'error'
@@ -30,23 +30,17 @@ function useLine(): Line {
   const selecting = ui.use((s) => s.selecting)
   const notice = ui.use((s) => s.notice)
   const opening = ui.use((s) => s.opening)
-  const waiting = prompts.use((s) => !!s.box || s.points.length > 0)
   // Clicks made meanwhile queue behind it, so it's only worth saying when it's slow.
   const analyzing = useLasting(status === 'encoding')
   const { mod } = useMod()
   const hint = TOOLS[tool].hint?.(mod)
   // The first load is one wait (the sample, the download, starting up, the
-  // first view), so it reads as one line instead of flickering through each.
+  // first view, a box drawn meanwhile), so it reads as one line instead of
+  // flickering through each.
   const loading = !hint && status === 'loading'
 
   if (notice) return { tone: 'error', text: notice }
-  if (loading)
-    return {
-      tone: 'busy',
-      text: waiting
-        ? 'Selecting once Smart Select is ready'
-        : 'Loading Smart Select',
-    }
+  if (loading) return { tone: 'busy', text: 'Loading Smart Select' }
   if (opening) return { tone: 'busy', text: `Opening ${opening}…` }
   if (hint) return { tone: 'ok', text: hint[0], touch: hint[1] }
   if (status === 'error')

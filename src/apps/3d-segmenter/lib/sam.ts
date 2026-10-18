@@ -11,6 +11,8 @@ import { view } from './view'
 let worker: Worker | undefined
 let ready = false
 let viewId = 0
+/** The last view a prompt was sent for. */
+let asked = 0
 
 const send = (req: Request) => worker?.postMessage(req)
 
@@ -32,14 +34,19 @@ export const sam = {
         case 'ready':
           ready = true
           return on.ready()
-        // Loading lasts through the first view's encoding, so the status says one thing until it's usable.
-        case 'encoded':
+        // Loading lasts through the first view's encoding, and the answer to
+        // a prompt that waited for it, so the status says one thing until
+        // it's usable.
+        case 'encoded': {
+          const { status } = ui.get()
+          if (reply.id !== viewId) return
           if (
-            reply.id === viewId &&
-            ['loading', 'encoding'].includes(ui.get().status)
+            status === 'encoding' ||
+            (status === 'loading' && asked !== viewId)
           )
             ui.set({ status: 'ready' })
           return
+        }
         case 'mask':
           if (reply.id === viewId) on.mask(reply.mask)
           return
@@ -76,7 +83,8 @@ export const sam = {
 
   decode(points: Point[], box: Box | null) {
     if (!ready) return
-    ui.set({ status: 'decoding' })
+    if (ui.get().status !== 'loading') ui.set({ status: 'decoding' })
+    asked = viewId
     send({ type: 'decode', id: viewId, points, box })
   },
 }
