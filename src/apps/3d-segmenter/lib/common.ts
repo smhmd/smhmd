@@ -3,6 +3,9 @@ import { Color } from 'three'
 export const APP_ID = '3d-segmenter'
 export const MODEL = 'onnx-community/EdgeTAM-ONNX'
 
+/** Tailwind's `lg`, in px: panels dock above it and float below. */
+export const WIDE = 1024
+
 /** What Open and drop accept. */
 export const FORMATS = ['glb', 'gltf', 'obj', 'ply', 'stl']
 

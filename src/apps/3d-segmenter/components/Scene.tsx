@@ -3,6 +3,9 @@ import { useEffect, useLayoutEffect } from 'react'
 import { Grid, OrbitControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import type { PerspectiveCamera } from 'three'
+
+import { useGlobals } from 'src/contexts'
+
 import {
   api,
   CLAY,
@@ -25,10 +28,11 @@ import { Gizmo } from './Gizmo'
 const SURFACE = { solid: CLAY, wireframe: HIDDEN, textures: undefined }
 
 export default function Scene() {
-  const mesh = ui.use((s) => s.mesh)
-  const shading = ui.use((s) => s.shading)
-  const grid = ui.use((s) => s.grid)
+  const mesh = ui.use('mesh')
+  const shading = ui.use('shading')
+  const grid = ui.use('grid')
   const { gl, size, invalidate } = useThree()
+  const viewport = useGlobals().width
   // The Canvas's camera is a perspective one, and the controls are the
   // OrbitControls below (`makeDefault`); useThree only knows the base types.
   const camera = useThree((s) => s.camera) as PerspectiveCamera
@@ -92,7 +96,7 @@ export default function Scene() {
         maxDistance={8}
         onChange={api.move}
       />
-      <Gizmo width={size.width} />
+      <Gizmo viewport={viewport} />
     </>
   )
 }

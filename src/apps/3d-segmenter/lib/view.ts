@@ -15,7 +15,7 @@ import {
   type WebGLRenderer,
 } from 'three'
 
-import type { Behavior, Part } from './common'
+import { type Behavior, type Part, WIDE } from './common'
 import { data } from './mesh'
 
 const FAR = 16
@@ -280,18 +280,18 @@ export function fit(part?: Part) {
 
 /**
  * Where the axis gizmo sits: its center's distance from the canvas's
- * bottom-right corner. Phones lift it clear of the toolbar.
+ * bottom-right corner. Phones lift it clear of the toolbar. By the viewport,
+ * not the canvas, which is narrower than `WIDE` between docked panels.
  */
-export const gizmoMargin = (width: number): [number, number] => [
+export const gizmoMargin = (viewport: number): [number, number] => [
   52,
-  width < 1024 ? 180 : 52,
+  viewport < WIDE ? 180 : 52,
 ]
 
 /** Whether a canvas point is on the gizmo, which takes its own clicks. */
 export function onGizmo(x: number, y: number) {
-  const canvas = view.gl?.domElement
-  if (!canvas) return false
-  const [mx, my] = gizmoMargin(canvas.clientWidth)
+  const canvas = view.gl!.domElement
+  const [mx, my] = gizmoMargin(innerWidth)
   const [cx, cy] = [canvas.clientWidth - mx, canvas.clientHeight - my]
   return (x - cx) ** 2 + (y - cy) ** 2 < 48 ** 2
 }

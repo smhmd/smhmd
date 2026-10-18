@@ -104,7 +104,7 @@ test('the ring shows for the tool’s own finger, not while navigating', async (
   // So does a drag that starts on the gizmo, even once it leaves it.
   const gizmo = await page.evaluate(() => {
     const r = window.m.view.gl!.domElement.getBoundingClientRect()
-    const [mx, my] = window.m.gizmoMargin(r.width)
+    const [mx, my] = window.m.gizmoMargin(innerWidth)
     return [r.right - mx, r.bottom - my] as [number, number]
   })
   await touch('touchStart', [gizmo])

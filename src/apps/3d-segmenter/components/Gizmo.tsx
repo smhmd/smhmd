@@ -33,9 +33,9 @@ const AXES: Axis[] = [
  * pressed; these heads turn it on a tap, so a drag that starts on the gizmo
  * orbits instead, in any tool.
  */
-export function Gizmo({ width }: { width: number }) {
+export function Gizmo({ viewport }: { viewport: number }) {
   return (
-    <GizmoHelper alignment='bottom-right' margin={gizmoMargin(width)}>
+    <GizmoHelper alignment='bottom-right' margin={gizmoMargin(viewport)}>
       <group scale={40}>
         {AXES.map(({ label, color, direction, rotation }) => (
           <group key={label}>

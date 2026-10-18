@@ -3,7 +3,9 @@ import { useState } from 'react'
 import { Accordion } from '@base-ui/react/accordion'
 import clsx from 'clsx'
 
-import { useWide } from '../lib'
+import { useGlobals } from 'src/contexts'
+
+import { WIDE } from '../lib'
 import { AppIcon } from '../metadata'
 import { Classes } from './Classes'
 import { Parts } from './Parts'
@@ -14,7 +16,9 @@ import { glass } from './ui'
  * card where they fold, one open at a time, or both away to clear the view.
  */
 export function Sidebar() {
-  const wide = useWide()
+  // Globals measure 0 until mounted, on the server too, so phones render folded
+  // from the first paint; large screens open both once measured.
+  const wide = useGlobals().width >= WIDE
   // Both folded at first, so the model is in full view.
   const [open, setOpen] = useState<string[]>([])
 

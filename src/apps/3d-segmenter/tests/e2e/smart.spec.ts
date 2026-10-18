@@ -108,7 +108,7 @@ const head = (page: Page, direction: [number, number, number]) =>
   page.evaluate((direction) => {
     const { view, gizmoMargin } = window.m
     const r = view.gl!.domElement.getBoundingClientRect()
-    const [mx, my] = gizmoMargin(r.width)
+    const [mx, my] = gizmoMargin(innerWidth)
     // The gizmo turns with the camera: the head sits along the axis, seen from it.
     const [x, y] = view
       .camera!.position.clone()
