@@ -48,6 +48,10 @@ export type Doc = {
   parts: Part[]
 }
 
+export const classById = (s: Doc, id: number) =>
+  s.classes.find((c) => c.id === id)
+export const activeClass = (s: Doc) => classById(s, s.active)
+
 /** The document: what gets exported. Changes only on discrete edits, never mid-stroke. */
 export const doc = createStore<Doc>({
   name: '',

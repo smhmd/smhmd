@@ -1,4 +1,4 @@
-import type { Box, Point } from './common'
+import type { Box, Point, Status } from './common'
 import type { Reply, Request } from './sam.worker'
 import { notify, ui } from './state'
 import { view } from './view'
@@ -15,6 +15,11 @@ let viewId = 0
 let asked = 0
 
 const send = (req: Request) => worker?.postMessage(req)
+
+/** The first load reads as one wait, so working states don't interrupt it. */
+function busy(status: Status) {
+  if (ui.get().status !== 'loading') ui.set({ status })
+}
 
 type Handlers = { ready(): void; mask(mask: Uint8Array): void }
 
@@ -68,7 +73,7 @@ export const sam = {
   },
 
   moved() {
-    if (ready && ui.get().status !== 'loading') ui.set({ status: 'moving' })
+    if (ready) busy('moving')
   },
 
   /** Encodes the last captured frame: the expensive half, once per view. */
@@ -78,12 +83,12 @@ export const sam = {
     viewId++
     const { data, width, height } = frame
     send({ type: 'encode', id: viewId, data, width, height })
-    if (ui.get().status !== 'loading') ui.set({ status: 'encoding' })
+    busy('encoding')
   },
 
   decode(points: Point[], box: Box | null) {
     if (!ready) return
-    if (ui.get().status !== 'loading') ui.set({ status: 'decoding' })
+    busy('decoding')
     asked = viewId
     send({ type: 'decode', id: viewId, points, box })
   },

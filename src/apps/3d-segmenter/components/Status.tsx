@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import clsx from 'clsx'
 import { MotionConfig, motion } from 'motion/react'
 
-import { api, ui, useMod } from '../lib'
+import { api, ui } from '../lib'
 import { TOOLS } from './tools'
 
 type Tone = 'ok' | 'busy' | 'error'
@@ -25,15 +25,14 @@ function useLasting(on: boolean, ms = 500) {
 
 /** One line that always says what's happening, or what the current tool does next. */
 function useLine(): Line {
-  const tool = ui.use((s) => s.tool)
-  const status = ui.use((s) => s.status)
-  const selecting = ui.use((s) => s.selecting)
-  const notice = ui.use((s) => s.notice)
-  const opening = ui.use((s) => s.opening)
+  const tool = ui.use('tool')
+  const status = ui.use('status')
+  const selecting = ui.use('selecting')
+  const notice = ui.use('notice')
+  const opening = ui.use('opening')
   // Clicks made meanwhile queue behind it, so it's only worth saying when it's slow.
   const analyzing = useLasting(status === 'encoding')
-  const { mod } = useMod()
-  const hint = TOOLS[tool].hint?.(mod)
+  const { hint } = TOOLS[tool]
   // The first load is one wait (the sample, the download, starting up, the
   // first view, a box drawn meanwhile), so it reads as one line instead of
   // flickering through each.
@@ -75,7 +74,7 @@ const spring = { type: 'spring', bounce: 0.25, duration: 0.45 } as const
  */
 export function Status() {
   const { tone, text, touch = text, retry } = useLine()
-  const selecting = ui.use((s) => s.selecting)
+  const selecting = ui.use('selecting')
   // Just what's arrived, since the total grows as each file starts. A cached
   // model reads in a blink, so it only shows once the bytes keep coming.
   const downloaded = ui.use((s) =>

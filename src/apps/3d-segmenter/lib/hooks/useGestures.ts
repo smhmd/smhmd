@@ -49,7 +49,7 @@ export function useGestures() {
 
   function end() {
     gesture.current = null
-    if (draft.current) draft.current.hidden = true
+    draft.current!.hidden = true
   }
 
   // Mid-drag, shortcuts wait: switching tools, undoing or grabbing the hand
@@ -70,12 +70,11 @@ export function useGestures() {
         end()
       }
     }
-    window.addEventListener('keydown', key, true)
-    window.addEventListener('keyup', key, true)
-    return () => {
-      window.removeEventListener('keydown', key, true)
-      window.removeEventListener('keyup', key, true)
-    }
+    const controller = new AbortController()
+    const { signal } = controller
+    window.addEventListener('keydown', key, { capture: true, signal })
+    window.addEventListener('keyup', key, { capture: true, signal })
+    return () => controller.abort()
   }, [])
 
   // Zooming takes the hand, a tool without a ring or a pinch. Captured here,
@@ -90,8 +89,13 @@ export function useGestures() {
       // Shift-scroll arrives as a horizontal scroll on macOS.
       api.resize(Math.exp(-(e.deltaY || e.deltaX) / 400))
     }
-    element.addEventListener('wheel', wheel, { capture: true, passive: false })
-    return () => element.removeEventListener('wheel', wheel, { capture: true })
+    const controller = new AbortController()
+    element.addEventListener('wheel', wheel, {
+      capture: true,
+      passive: false,
+      signal: controller.signal,
+    })
+    return () => controller.abort()
   }, [])
 
   function onPointerDownCapture(e: React.PointerEvent) {
@@ -138,11 +142,10 @@ export function useGestures() {
     }
     g.last = [x, y]
     api.drag(x, y)
-    if (current().gesture === 'box' && draft.current)
-      if (Math.hypot(x - g.x, y - g.y) > CLICK) {
-        Object.assign(draft.current.style, rect([g.x, g.y, x, y]))
-        draft.current.hidden = false
-      }
+    if (current().gesture === 'box' && Math.hypot(x - g.x, y - g.y) > CLICK) {
+      Object.assign(draft.current!.style, rect([g.x, g.y, x, y]))
+      draft.current!.hidden = false
+    }
   }
 
   function onPointerUp(e: React.PointerEvent) {

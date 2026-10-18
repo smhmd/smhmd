@@ -1,9 +1,9 @@
 import { Vector3 } from 'three'
 
 import type { Behavior } from '../common'
-import { active, discard, paint, recount, snapshot, target } from '../edit'
+import { discard, paint, recount, snapshot, target } from '../edit'
 import { data, highlight } from '../mesh'
-import { doc, ui } from '../state'
+import { activeClass, doc, ui } from '../state'
 import { flood, folds } from '../topology'
 import { pixel, under, view } from '../view'
 
@@ -94,7 +94,7 @@ function tint(hit: Hit, radius: number) {
       return
   const region = mark(area(hit, radius))
   preview = { face: hit.face, radius, region }
-  highlight(region, active()?.color ?? '#ffffff')
+  highlight(region, activeClass(doc.get())?.color ?? '#ffffff')
   view.invalidate()
 }
 

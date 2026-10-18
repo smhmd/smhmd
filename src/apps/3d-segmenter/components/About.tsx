@@ -3,7 +3,7 @@ import clsx from 'clsx'
 
 import { Help } from 'src/icons'
 
-import { SAMPLE, useMod } from '../lib'
+import { MOD_LABEL, REDO_KEYS, SAMPLE, TOOL_KEYS, UNDO_KEYS } from '../lib'
 import { button, small, Tip } from './ui'
 
 const steps = [
@@ -20,14 +20,17 @@ const steps = [
   ['Export', 'A Supervisely mesh project (.tar), ready to import.'],
 ]
 
-const keys = ({ mod, key, shift }: ReturnType<typeof useMod>) => [
-  ['V S L B E', 'Move, smart select, fill, brush, eraser'],
+const keys = [
+  [
+    Object.values(TOOL_KEYS).join(' ').toUpperCase(),
+    'Move, smart select, fill, brush, eraser',
+  ],
   ['1–9', 'Pick a class'],
   ['[  ]', 'Ring size (or scroll)'],
-  [mod, 'Hold to orbit with any tool'],
+  [MOD_LABEL, 'Hold to orbit with any tool'],
   ['⇧', 'Hold with Fill for the whole piece'],
   ['space  esc', 'Apply, cancel'],
-  [`${key('Z')}  ${shift('Z')}`, 'Undo, redo'],
+  [`${UNDO_KEYS}  ${REDO_KEYS}`, 'Undo, redo'],
   ['F  X  G', 'Fit to view, X-ray, grid'],
   ['T  W', 'Textures, wireframe'],
 ]
@@ -36,7 +39,6 @@ const heading = 'mt-5 mb-2 text-xs font-medium text-neutral-500'
 
 /** The right panel's footer button: what this is, how to drive it, and the sample's credit. Large screens only. */
 export function About() {
-  const mod = useMod()
   return (
     <footer className='border-white/6 flex h-10 shrink-0 items-center justify-end border-t px-1.5'>
       <Dialog.Root>
@@ -70,7 +72,7 @@ export function About() {
 
             <h3 className={heading}>Shortcuts</h3>
             <dl className='grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5'>
-              {keys(mod).map(([combo, what]) => (
+              {keys.map(([combo, what]) => (
                 <div key={combo} className='contents'>
                   <dt>
                     <kbd className='whitespace-pre font-sans text-neutral-100'>

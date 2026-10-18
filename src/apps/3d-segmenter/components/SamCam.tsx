@@ -1,19 +1,22 @@
 import { useLayoutEffect, useRef } from 'react'
 
+import { isMobile } from 'src/lib/env'
 import { TAU } from 'src/lib/math'
 
 import {
+  activeClass,
   BACKGROUND,
   type Box,
   doc,
   type Point,
   prompts,
+  type Status,
   ui,
   view,
 } from '../lib'
 import { Section } from './ui'
 
-const BUSY = {
+const BUSY: Partial<Record<Status, string>> = {
   moving: 'Analyzing…',
   encoding: 'Analyzing…',
   decoding: 'Segmenting…',
@@ -21,17 +24,16 @@ const BUSY = {
 
 /** What the model actually sees: the last frame sent to EdgeTAM, its raw 2D mask, and your clicks. */
 export function SamCam() {
-  const frame = ui.use((s) => s.frame)
-  const status = ui.use((s) => s.status)
-  const color = doc.use(
-    (s) => s.classes.find((c) => c.id === s.active)?.color ?? '#ffffff',
-  )
+  const frame = ui.use('frame')
+  const busy = ui.use((s) => BUSY[s.status])
+  const color = doc.use((s) => activeClass(s)?.color ?? '#ffffff')
   const { points, box } = prompts.use()
   const canvas = useRef<HTMLCanvasElement>(null)
 
-  // Before paint, so a new frame never flashes at the old size.
+  // Before paint, so a new frame never flashes at the old size. Phones never
+  // show the Inspector, so they skip the per-frame copies.
   useLayoutEffect(() => {
-    if (canvas.current) draw(canvas.current, color, points, box)
+    if (!isMobile) draw(canvas.current!, color, points, box)
   }, [frame, color, points, box])
 
   return (
@@ -41,9 +43,9 @@ export function SamCam() {
         className='ring-white/6 aspect-4/3 relative mx-3 overflow-hidden rounded-md ring-1'
         style={{ background: BACKGROUND }}>
         <canvas ref={canvas} aria-hidden className='size-full object-contain' />
-        {status in BUSY && (
+        {busy && (
           <span className='text-xxs absolute bottom-1.5 left-1.5 rounded bg-black/60 px-1.5 py-0.5 text-neutral-300'>
-            {BUSY[status as keyof typeof BUSY]}
+            {busy}
           </span>
         )}
       </div>
@@ -61,8 +63,8 @@ function draw(
   box: Box | null,
 ) {
   const { frame, mask, width, height } = view
-  const ctx = canvas.getContext('2d')
-  if (!ctx || !frame) return
+  if (!frame) return
+  const ctx = canvas.getContext('2d')!
   canvas.width = width
   canvas.height = height
   ctx.putImageData(frame, 0, 0)

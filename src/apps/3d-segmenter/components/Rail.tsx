@@ -3,7 +3,7 @@ import clsx from 'clsx'
 
 import { Redo, Undo } from 'src/icons'
 
-import { api, doc, type Doc, ui, useMod } from '../lib'
+import { activeClass, api, doc, RADIUS, REDO_KEYS, ui, UNDO_KEYS } from '../lib'
 import { ClassMenu } from './ClassMenu'
 import { TOOLS } from './tools'
 import { button, IconButton, island, Range, small, Tip } from './ui'
@@ -13,7 +13,6 @@ export function Rail() {
   const size = ui.use((s) => TOOLS[s.tool].size)
   const canUndo = ui.use((s) => s.past > 0)
   const canRedo = ui.use((s) => s.future > 0)
-  const { key, shift } = useMod()
 
   return (
     <div
@@ -36,7 +35,7 @@ export function Rail() {
       <Picker />
       <IconButton
         label='Undo'
-        keys={key('Z')}
+        keys={UNDO_KEYS}
         disabled={!canUndo}
         onClick={api.undo}
         className={small}>
@@ -44,7 +43,7 @@ export function Rail() {
       </IconButton>
       <IconButton
         label='Redo'
-        keys={shift('Z')}
+        keys={REDO_KEYS}
         disabled={!canRedo}
         onClick={api.redo}
         className={small}>
@@ -55,25 +54,22 @@ export function Rail() {
 }
 
 function Size() {
-  const radius = ui.use((s) => s.radius)
+  const radius = ui.use('radius')
   return (
     <Range
       label='Brush Size'
       value={radius}
-      min={4}
-      max={160}
+      {...RADIUS}
       vertical
       onChange={api.setRadius}
     />
   )
 }
 
-const active = (s: Doc) => s.classes.find((c) => c.id === s.active)
-
 /** Where Procreate puts its color square: the active class, and a menu to switch it. */
 function Picker() {
-  const name = doc.use((s) => active(s)?.name)
-  const color = doc.use((s) => active(s)?.color)
+  const name = doc.use((s) => activeClass(s)?.name)
+  const color = doc.use((s) => activeClass(s)?.color)
 
   return (
     <Menu.Root>
@@ -83,7 +79,7 @@ function Picker() {
           className={clsx(button, small)}>
           <span
             className='size-4! rounded-[5px] ring-2 ring-white/70'
-            style={{ background: color ?? 'transparent' }}
+            style={{ background: color }}
           />
         </Menu.Trigger>
       </Tip>

@@ -29,4 +29,5 @@ export const isClient = typeof window !== 'undefined'
 export const isServer = typeof window === 'undefined'
 
 export const isMobile = isClient && MOBILE_REGEX.test(navigator.userAgent)
+export const isMac = isClient && /Mac|iPhone|iPad|iPod/.test(navigator.platform)
 export const isDesktop = !isMobile

@@ -32,16 +32,13 @@ export function Drop() {
       const file = e.dataTransfer!.files[0]
       if (file) void api.open(file)
     }
-    window.addEventListener('dragenter', enter)
-    window.addEventListener('dragleave', leave)
-    window.addEventListener('dragover', over)
-    window.addEventListener('drop', drop)
-    return () => {
-      window.removeEventListener('dragenter', enter)
-      window.removeEventListener('dragleave', leave)
-      window.removeEventListener('dragover', over)
-      window.removeEventListener('drop', drop)
-    }
+    const controller = new AbortController()
+    const { signal } = controller
+    window.addEventListener('dragenter', enter, { signal })
+    window.addEventListener('dragleave', leave, { signal })
+    window.addEventListener('dragover', over, { signal })
+    window.addEventListener('drop', drop, { signal })
+    return () => controller.abort()
   }, [])
 
   return (

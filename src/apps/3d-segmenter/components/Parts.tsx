@@ -5,9 +5,9 @@ import clsx from 'clsx'
 
 import { CenterFocus, Sell, Visibility, VisibilityOff } from 'src/icons'
 
-import { api, doc, type Part, ui } from '../lib'
-import { ClassMenu, item } from './ClassMenu'
-import { button, Fold, IconButton, small, Tip, Trailing } from './ui'
+import { api, classById, doc, type Part, ui } from '../lib'
+import { ClassMenu } from './ClassMenu'
+import { button, Fold, IconButton, item, small, Tip, Trailing } from './ui'
 
 /**
  * The model's own hierarchy, after Figma's layers panel: a hidden part dims
@@ -15,7 +15,7 @@ import { button, Fold, IconButton, small, Tip, Trailing } from './ui'
  * makes no sense. Alt-click an eye to solo a part, like Blender's local view.
  */
 export function Parts() {
-  const { parts } = doc.use()
+  const parts = doc.use('parts')
   const anyHidden = parts.some((p) => p.hidden)
 
   return (
@@ -53,8 +53,8 @@ export function Parts() {
 const Row = memo(({ part, index }: { part: Part; index: number }) => {
   const selected = ui.use((s) => s.part === index)
   // Primitives, so edits to other classes (like their counts) skip this row.
-  const name = doc.use((s) => s.classes.find((c) => c.id === part.cls)?.name)
-  const color = doc.use((s) => s.classes.find((c) => c.id === part.cls)?.color)
+  const name = doc.use((s) => classById(s, part.cls)?.name)
+  const color = doc.use((s) => classById(s, part.cls)?.color)
 
   return (
     <li

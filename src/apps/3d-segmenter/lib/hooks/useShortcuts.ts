@@ -1,19 +1,16 @@
 import { useEffect } from 'react'
 
-import type { Shading, Tool } from '../common'
-import { data } from '../mesh'
+import { isMac } from 'src/lib/env'
+
 import { api } from '../api'
-import { MAC, MOD } from '../platform'
+import { type Shading, type Tool, TOOL_KEYS, TOOL_ORDER } from '../common'
+import { MOD } from '../platform'
 import { doc, ui } from '../state'
 import { view } from '../view'
 
-const TOOLS: Record<string, Tool> = {
-  v: 'move',
-  s: 'smart',
-  l: 'fill',
-  b: 'brush',
-  e: 'erase',
-}
+const TOOLS: Record<string, Tool> = Object.fromEntries(
+  TOOL_ORDER.map((tool) => [TOOL_KEYS[tool], tool]),
+)
 
 /** T and W pick their shading, or go back to Solid if it's already on. */
 const shade = (shading: Shading) =>
@@ -25,7 +22,7 @@ const ACTIONS: Record<string, () => void> = {
   ' ': api.finish,
   enter: api.finish,
   escape: api.cancel,
-  f: () => api.fit(data.parts[ui.get().part]),
+  f: api.fitSelection,
   g: () => api.toggle('grid'),
   t: () => shade('textures'),
   w: () => shade('wireframe'),
@@ -56,7 +53,7 @@ export function useShortcuts() {
         return
       if (e.key === MOD) return hold('hand', true)
       // ⌘ or Ctrl plus another key is a shortcut, not a hold to move.
-      if (MAC ? e.metaKey : e.ctrlKey) hold('hand', false)
+      if (isMac ? e.metaKey : e.ctrlKey) hold('hand', false)
       const key = e.key.toLowerCase()
       if ((e.metaKey || e.ctrlKey) && key === 'z') {
         e.preventDefault()
@@ -79,13 +76,11 @@ export function useShortcuts() {
     const up = (e: KeyboardEvent) => HELD[e.key] && hold(HELD[e.key], false)
     // Switching tabs mid-press never delivers the keyup.
     const blur = () => Object.values(HELD).forEach((key) => hold(key, false))
-    window.addEventListener('keydown', down)
-    window.addEventListener('keyup', up)
-    window.addEventListener('blur', blur)
-    return () => {
-      window.removeEventListener('keydown', down)
-      window.removeEventListener('keyup', up)
-      window.removeEventListener('blur', blur)
-    }
+    const controller = new AbortController()
+    const { signal } = controller
+    window.addEventListener('keydown', down, { signal })
+    window.addEventListener('keyup', up, { signal })
+    window.addEventListener('blur', blur, { signal })
+    return () => controller.abort()
   }, [])
 }

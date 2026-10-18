@@ -1,6 +1,6 @@
 import type { BufferGeometry } from 'three'
 
-import { data } from './mesh'
+import { data, weld } from './mesh'
 
 type Topology = {
   /** Vertex neighbors in CSR form: the neighbors of `v` are `links[offsets[v]..offsets[v + 1]]`. */
@@ -53,19 +53,6 @@ function topology() {
   const sorted = valley.slice().sort()
   cache = { geometry, topology: { offsets, links, valley, sorted } }
   return cache.topology
-}
-
-/** Each vertex's twin: the first vertex at the same position, to 1e-4 of the model's radius. */
-function weld(position: ArrayLike<number>) {
-  const first = new Map<number, number>()
-  const twin = new Int32Array(position.length / 3)
-  // The model is scaled into the unit sphere, so each quantized axis fits in 15 bits.
-  const q = (i: number) => Math.round(position[i] * 1e4) + 16384
-  for (let v = 0; v < twin.length; v++) {
-    const key = (q(v * 3) * 32768 + q(v * 3 + 1)) * 32768 + q(v * 3 + 2)
-    twin[v] = first.get(key) ?? (first.set(key, v), v)
-  }
-  return twin
 }
 
 /**

@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'motion/react'
 
 import { data, doc, ui } from '../lib'
 import { About } from './About'
-import { Actions } from './Header'
+import { Actions } from './Actions'
 import { SamCam } from './SamCam'
 import { Section } from './ui'
 
@@ -47,8 +47,8 @@ const measure = (n: number) =>
   n.toLocaleString(undefined, { maximumSignificantDigits: 3 })
 
 function Stats() {
-  ui.use((s) => s.mesh) // a new model, even under the same name
-  const name = doc.use((s) => s.name)
+  ui.use('mesh') // a new model, even under the same name
+  const name = doc.use('name')
   const { format, bytes: size, size: extent, materials, textures } = data.info
   if (!name) return null
   // glTF is in meters; OBJ, PLY and STL don't say.

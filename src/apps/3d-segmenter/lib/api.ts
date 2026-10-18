@@ -6,6 +6,7 @@ import {
   type Cls,
   FORMATS,
   type Part,
+  RADIUS,
   type Release,
   SAMPLE,
   type Shading,
@@ -165,7 +166,7 @@ export const api = {
   },
 
   setRadius(radius: number) {
-    ui.set({ radius: clamp(4, radius, 160) })
+    ui.set({ radius: clamp(RADIUS.min, radius, RADIUS.max) })
     rehover()
   },
 
@@ -231,6 +232,11 @@ export const api = {
   redo: () => history(edit.redo),
 
   fit,
+
+  /** Fits the selected part, or the whole model when none is. */
+  fitSelection() {
+    fit(data.parts[ui.get().part])
+  },
 
   selectPart(index: number) {
     ui.set((s) => ({ part: s.part === index ? -1 : index }))

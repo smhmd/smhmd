@@ -15,16 +15,15 @@ type CursorProps = {
  * this only re-renders when the tool or size changes.
  */
 export function Cursor({ stage, ring }: CursorProps) {
-  const tool = ui.use((s) => s.tool)
-  const radius = ui.use((s) => s.radius)
+  const tool = ui.use('tool')
+  const radius = ui.use('radius')
   const { gesture } = tools[tool]
   const look = TOOLS[tool].ring
   // Switching tools with the keyboard: the new ring starts where the pointer already is.
   const at = view.pointer ? `${view.pointer[0]}px ${view.pointer[1]}px` : AWAY
 
   useEffect(() => {
-    if (stage.current)
-      stage.current.style.cursor = gesture ? 'crosshair' : 'grab'
+    stage.current!.style.cursor = gesture ? 'crosshair' : 'grab'
   }, [stage, gesture])
 
   // Full-width guides to line a box's edges up with the object's extremes.

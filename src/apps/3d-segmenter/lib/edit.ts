@@ -1,6 +1,6 @@
 import { colorAt, type Cls } from './common'
 import { colorize, data, refresh, tally } from './mesh'
-import { doc, ui } from './state'
+import { activeClass, doc, ui } from './state'
 import { view } from './view'
 
 /**
@@ -90,11 +90,8 @@ export function addClass() {
   recolor()
 }
 
-export const active = () =>
-  doc.get().classes.find((c) => c.id === doc.get().active)
-
 /** The class new labels go to, created on demand so painting never needs a setup step. */
 export function target() {
-  if (!active()) addClass()
+  if (!activeClass(doc.get())) addClass()
   return doc.get().active
 }

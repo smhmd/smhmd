@@ -55,6 +55,19 @@ export type Point = { x: number; y: number; positive: boolean }
 /** Screen-space corners: x0, y0, x1, y1. */
 export type Box = [number, number, number, number]
 export type Tool = 'move' | 'smart' | 'fill' | 'brush' | 'erase'
+
+/** Each tool's shortcut, in toolbar order. */
+export const TOOL_KEYS: Record<Tool, string> = {
+  move: 'v',
+  smart: 's',
+  fill: 'l',
+  brush: 'b',
+  erase: 'e',
+}
+export const TOOL_ORDER = Object.keys(TOOL_KEYS) as Tool[]
+
+/** The ring's radius, in screen pixels. */
+export const RADIUS = { min: 4, max: 160 }
 /** How the model is drawn, one at a time as in Blender: clay, its own textures, or only its edges. */
 export type Shading = 'solid' | 'textures' | 'wireframe'
 export type Status =

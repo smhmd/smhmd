@@ -61,6 +61,10 @@ export function IconButton({
   )
 }
 
+/** A row in a menu. */
+export const item =
+  'flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-xs text-neutral-200 outline-none data-highlighted:bg-white/10'
+
 /** Compact icon buttons for list rows. */
 export const small = 'size-7! *:size-4!'
 

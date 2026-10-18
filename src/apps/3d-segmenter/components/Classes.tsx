@@ -8,7 +8,8 @@ import { api, type Cls, data, doc } from '../lib'
 import { Fold, IconButton, small, Tip, Trailing } from './ui'
 
 export function Classes() {
-  const { classes, active } = doc.use()
+  const classes = doc.use('classes')
+  const active = doc.use('active')
 
   return (
     <Fold

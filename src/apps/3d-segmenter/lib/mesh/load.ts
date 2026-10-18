@@ -16,6 +16,7 @@ import {
 
 import { data } from './geometry'
 import { matcap } from './materials'
+import { weld } from './weld'
 
 const DRACO = 'https://www.gstatic.com/draco/versioned/decoders/1.5.7/'
 
@@ -95,20 +96,10 @@ function split(geometry: BufferGeometry) {
   }
   const join = (a: number, b: number) => (root[find(a)] = find(b))
 
-  // Quantized to 1e-4 of the radius around the center: 15 bits an axis.
   geometry.computeBoundingSphere()
   const { center, radius } = geometry.boundingSphere!
-  const q = (c: number, o: number) =>
-    Math.round(((c - o) / radius) * 1e4) + 16384
-  const first = new Map<number, number>()
-  for (let v = 0; v < n; v++) {
-    const key =
-      (q(p.getX(v), center.x) * 32768 + q(p.getY(v), center.y)) * 32768 +
-      q(p.getZ(v), center.z)
-    const twin = first.get(key)
-    if (twin === undefined) first.set(key, v)
-    else join(v, twin)
-  }
+  const twin = weld(p.array, center.toArray(), radius)
+  for (let v = 0; v < n; v++) if (twin[v] !== v) join(v, twin[v])
   for (let t = 0; t < index.length; t += 3) {
     join(index[t], index[t + 1])
     join(index[t], index[t + 2])

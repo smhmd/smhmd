@@ -15,9 +15,8 @@ import {
   ViewInAr,
 } from 'src/icons'
 
-import { api, data, type Shading, ui } from '../lib'
-import { item } from './ClassMenu'
-import { button, island, Tip } from './ui'
+import { api, type Shading, ui } from '../lib'
+import { button, island, item, Tip } from './ui'
 
 const on = 'aria-pressed:bg-white/12 aria-pressed:text-white'
 
@@ -32,16 +31,23 @@ const SHADING: {
   { id: 'wireframe', label: 'Wireframe', keys: 'W', Icon: Language },
 ]
 
+/** What both the toolbar and the phone menu show. */
+function useViewState() {
+  return {
+    fit: ui.use((s) => (s.part >= 0 ? 'Fit Part to View' : 'Fit to View')),
+    xray: ui.use('xray'),
+    grid: ui.use('grid'),
+    shading: ui.use('shading'),
+  }
+}
+
 /**
  * How you're looking at the model, top right of the canvas on large screens:
  * fitting it to view, the overlays (X-ray, grid), and one shading at a time,
  * as in Blender's viewport header. Phones get the same as a menu.
  */
 export function View() {
-  const part = ui.use((s) => s.part)
-  const xray = ui.use((s) => s.xray)
-  const grid = ui.use((s) => s.grid)
-  const shading = ui.use((s) => s.shading)
+  const { fit, xray, grid, shading } = useViewState()
 
   return (
     <Toolbar.Root
@@ -50,11 +56,11 @@ export function View() {
         island,
         'absolute right-3 top-3 flex items-center gap-1 p-1 max-lg:hidden',
       )}>
-      <Tip label={part >= 0 ? 'Fit Part to View' : 'Fit to View'} keys='F'>
+      <Tip label={fit} keys='F'>
         <Toolbar.Button
-          aria-label={part >= 0 ? 'Fit Part to View' : 'Fit to View'}
+          aria-label={fit}
           className={button}
-          onClick={() => api.fit(data.parts[part])}>
+          onClick={api.fitSelection}>
           <CenterFocus aria-hidden />
         </Toolbar.Button>
       </Tip>
@@ -80,7 +86,7 @@ export function View() {
       <ToggleGroup
         aria-label='Shading'
         value={[shading]}
-        onValueChange={([next]) => next && api.setShading(next as Shading)}
+        onValueChange={([next]) => next && api.setShading(next)}
         className='flex gap-1'>
         {SHADING.map(({ id, label, keys, Icon }) => (
           <Tip key={id} label={label} keys={keys}>
@@ -101,10 +107,7 @@ const check = 'ml-auto size-4 fill-current'
 
 /** The View toolbar as one menu, for phones, beside Open and Export. */
 export function ViewMenu() {
-  const part = ui.use((s) => s.part)
-  const xray = ui.use((s) => s.xray)
-  const grid = ui.use((s) => s.grid)
-  const shading = ui.use((s) => s.shading)
+  const { fit, xray, grid, shading } = useViewState()
 
   return (
     <Menu.Root>
@@ -118,9 +121,9 @@ export function ViewMenu() {
           <Menu.Popup className={clsx(island, 'min-w-52 p-1.5 outline-none')}>
             <Menu.Item
               className={clsx(item, 'h-10')}
-              onClick={() => api.fit(data.parts[part])}>
+              onClick={api.fitSelection}>
               <CenterFocus aria-hidden className='size-4 fill-current' />
-              {part >= 0 ? 'Fit Part to View' : 'Fit to View'}
+              {fit}
             </Menu.Item>
             <Menu.CheckboxItem
               className={clsx(item, 'h-10')}
