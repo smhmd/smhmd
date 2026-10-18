@@ -10,7 +10,8 @@ import {
   type Tool,
 } from './common'
 import * as edit from './edit'
-import { data, parse, toMeta, toPLY } from './mesh'
+import { EXPORTS, type ExportFormat } from './export'
+import { data, parse } from './mesh'
 import { sam } from './sam'
 import { doc, notify, type Option, ui } from './state'
 import { tools } from './tools'
@@ -69,9 +70,9 @@ function show(visible: (index: number) => boolean) {
   api.move()
 }
 
-function download(content: string, name: string) {
+function download(file: Blob, name: string) {
   const a = document.createElement('a')
-  a.href = URL.createObjectURL(new Blob([content]))
+  a.href = URL.createObjectURL(file)
   a.download = name
   a.click()
   // Revoking right away can cancel the download in some browsers.
@@ -295,11 +296,12 @@ export const api = {
     edited()
   },
 
-  export() {
+  /** Downloads the model and its labels as one file, in Supervisely's format unless told otherwise. */
+  export(format: ExportFormat = EXPORTS[0]) {
     current().flush?.()
     const { classes, name } = doc.get()
     if (!data.geometry) return
-    download(toPLY(classes), name.replace(/\.\w+$/, '') + '.ply')
-    download(toMeta(classes), 'meta.json')
+    const base = name.replace(/\.\w+$/, '')
+    download(format.write(name, classes), `${base}.${format.extension}`)
   },
 }

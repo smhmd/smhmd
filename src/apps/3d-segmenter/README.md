@@ -13,7 +13,8 @@ Label 3D meshes per vertex, in the browser, and export them for [Supervisely](ht
 
 `lib/` is layered; each layer only imports the ones above it.
 
-- `lib/mesh/`: the engine. The merged geometry and labels, loading, materials, the Supervisely export.
+- `lib/mesh/`: the engine. The merged geometry and labels, loading, materials.
+- `lib/export/`: export formats (`EXPORTS`): Supervisely's mesh project, the tar and PLY writers it needs.
 - `lib/view.ts`, `lib/topology.ts`: camera, capture and picking; connectivity and folds.
 - `lib/state.ts`: the stores. `lib/edit.ts`: label edits and undo.
 - `lib/sam.ts`: the client for EdgeTAM's worker (`sam.worker.ts`).
@@ -46,7 +47,7 @@ Label 3D meshes per vertex, in the browser, and export them for [Supervisely](ht
 5. **X-ray** turns labels into see-through ghosts that can't be painted over, so you can label what's behind them. The eraser still reaches them: a tool with `ghosts` gets a capture whose depth pass includes the ghost mesh, as if X-ray were off. A stroke or selection stays solid until it's done (mouse released or selection applied), then joins the ghosts.
 6. **While dragging**, shortcuts wait until the drag ends, so a stroke can't be cut in half; Esc cancels the drag itself. Over the floating controls the ring stays where it was, so dragging the size slider shows the new size, and scrolling there doesn't resize.
 7. **Parts** are the meshes the file came with, or, when it has just one (a PLY, an STL, a scan), its separate pieces, up to 64. The geometry is never changed. Hovering a part outlines it; clicking selects it, and F fits it to view.
-8. **Export** writes an ASCII per-vertex PLY (`class_id`, `object_id = -1`, class colors) and `meta.json`. Supervisely rejects binary PLY.
+8. **Export** writes one file in a format from `export/` (`EXPORTS`; Supervisely for now). The Supervisely mesh project is a tar: `meta.json`, then a dataset with the mesh as ASCII PLY (as loaded, in the file's units, so vertex indices are the app's own) and an annotation with a label per class, each a `.indices.bin` of little-endian uint32 vertex indices.
 
 Faces are front-only everywhere, including the depth pass: to reach a back face, orbit to it.
 

@@ -57,11 +57,11 @@ export function Actions({ className }: { className?: string }) {
           <span className='max-lg:sr-only'>Open</span>
         </button>
       </Tip>
-      <Tip label='Per-Vertex PLY + meta.json' keys='for Supervisely'>
+      <Tip label='Supervisely Mesh Project' keys='.tar'>
         <button
           type='button'
           aria-label='Export'
-          onClick={api.export}
+          onClick={() => api.export()}
           className={clsx(
             action,
             'lg:hocus:bg-neutral-200 lg:hocus:text-neutral-950 lg:bg-white lg:font-medium lg:text-neutral-950',

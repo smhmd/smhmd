@@ -3,7 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { beforeEach, describe, expect, test } from 'vitest'
 
 import { CLASSES } from '../../lib/common'
-import { colorize, data, refresh, tally, toMeta, toPLY } from '../../lib/mesh'
+import { colorize, data, refresh, tally } from '../../lib/mesh'
 import { load } from './fixtures'
 
 const parts = () => ({
@@ -129,61 +129,5 @@ describe('colorize', () => {
     colorize(CLASSES, [0])
     expect(rgba(0)[3]).toBe(255)
     expect(rgba(1)[3]).toBe(0)
-  })
-})
-
-describe('export', () => {
-  const ply = () => toPLY(CLASSES).trim().split('\n')
-  const header = (lines: string[]) =>
-    lines.slice(0, lines.indexOf('end_header') + 1)
-
-  test('writes every vertex and face with its class', () => {
-    data.labels[0] = 2
-    const lines = ply()
-    const head = header(lines)
-    const vertices = data.labels.length
-    expect(head).toContain(`element vertex ${vertices}`)
-    expect(head).toContain(`element face ${data.triangles.length / 3}`)
-    expect(lines.length).toBe(
-      head.length + vertices + data.triangles.length / 3,
-    )
-    const [first, second] = lines.slice(head.length)
-    expect(first.split(' ').slice(3)).toEqual(['0', '158', '115', '2', '-1'])
-    expect(second.split(' ').slice(3)).toEqual([
-      '255',
-      '255',
-      '255',
-      '-1',
-      '-1',
-    ])
-  })
-
-  test('restores the original coordinates', () => {
-    const lines = ply()
-    const [x, y, z] = lines[header(lines).length].split(' ').map(Number)
-    // The box's first corner, before scaling into the unit sphere.
-    expect([x, y, z].map((n) => Math.abs(n))).toEqual(
-      [1.5, 0.5, 0.5].map((n) => expect.closeTo(n, 5)),
-    )
-  })
-
-  // Regression: faces came from the drawn index, which leaves out hidden and X-rayed triangles.
-  test('hidden parts and X-ray change nothing', () => {
-    const before = ply()
-    data.labels.fill(0, 0, 10)
-    data.parts[1].hidden = true
-    refresh(true)
-    const after = ply()
-    const faces = (lines: string[]) => lines.filter((l) => l.startsWith('3 '))
-    expect(faces(after)).toEqual(faces(before))
-  })
-
-  test('meta.json lists the classes as mesh classes', () => {
-    const meta = JSON.parse(toMeta(CLASSES))
-    expect(meta.projectType).toBe('meshes')
-    expect(meta.classes.map((c: { title: string }) => c.title)).toEqual(
-      CLASSES.map((c) => c.name),
-    )
-    expect(meta.classes[0].shape).toBe('mesh')
   })
 })

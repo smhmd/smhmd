@@ -17,7 +17,7 @@ const steps = [
   ],
   ['Brush & Eraser', 'Touch up the edges.'],
   ['X-ray', 'See through labels to reach what’s behind them.'],
-  ['Export', 'A per-vertex PLY and meta.json, ready for Supervisely.'],
+  ['Export', 'A Supervisely mesh project (.tar), ready to import.'],
 ]
 
 const keys = ({ mod, key, shift }: ReturnType<typeof useMod>) => [
