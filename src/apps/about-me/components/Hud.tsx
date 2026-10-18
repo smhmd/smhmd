@@ -7,8 +7,8 @@ import { panel, store, useChoices } from '../lib/store'
 import { Rows } from './Rows'
 
 export function Hud() {
-  const node = store.use((s) => s.node)
-  const entered = store.use((s) => s.entered)
+  const node = store.use('node')
+  const entered = store.use('entered')
   const text = node && dialogue[node].text
   const choices = useChoices()
 

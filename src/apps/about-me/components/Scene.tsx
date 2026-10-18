@@ -40,7 +40,7 @@ function Anchor() {
 }
 
 export default function Scene() {
-  const node = store.use((s) => s.node)
+  const node = store.use('node')
   const { avatar } = useFraming()
 
   useEffect(() => {

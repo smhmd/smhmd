@@ -51,8 +51,8 @@ function look(bone: Object3D, weight: number) {
 
 export function Avatar() {
   const root = useRef<Group>(null)
-  const node = store.use((s) => s.node)
-  const fresh = store.use((s) => s.fresh)
+  const node = store.use('node')
+  const fresh = store.use('fresh')
   const { avatar, distance, gaze: reach } = useFraming()
 
   const { scene, animations, materials } = useGLTF(MODEL)

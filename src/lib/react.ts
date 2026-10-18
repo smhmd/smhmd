@@ -16,6 +16,8 @@ export interface Store<T extends object> {
   get(): T
   set(patch: Partial<T> | ((prev: T) => Partial<T>)): void
   use(): T
+  /** One field: objects and arrays included, since they keep their identity until set. */
+  use<K extends keyof T>(key: K): T[K]
   use<S extends Stable>(selector: (state: T) => S): S
 }
 
@@ -40,8 +42,13 @@ export function createStore<T extends object>(initial: T): Store<T> {
       listeners.forEach((n) => n())
     },
 
-    use(selector: (state: T) => unknown = (s) => s) {
-      const snapshot = () => selector(state)
+    use(pick?: keyof T | ((state: T) => unknown)) {
+      const snapshot =
+        pick === undefined
+          ? () => state
+          : typeof pick === 'function'
+            ? () => pick(state)
+            : () => state[pick]
       return useSyncExternalStore(subscribe, snapshot, snapshot) as never
     },
   }

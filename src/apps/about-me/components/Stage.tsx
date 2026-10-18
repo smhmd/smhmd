@@ -30,7 +30,7 @@ const offset = new Vector3() // where it has damped to
 function Rig() {
   const camera = useThree((s) => s.camera) as PerspectiveCamera
   const { fov } = useFraming()
-  const ready = store.use((s) => s.ready)
+  const ready = store.use('ready')
   // 0 flies in, 1 is already there. Set by `enter` in the route loader.
   const entry = useRef(store.get().entered ? 1 : 0)
 

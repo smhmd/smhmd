@@ -7,7 +7,7 @@ import { store } from '../lib/store'
 
 export function Splash() {
   const { active, progress } = useProgress()
-  const ready = store.use((s) => s.ready)
+  const ready = store.use('ready')
   // `!active` guards the gap between loader batches, where progress reads
   // 100 while the EXR is still queued; `ready` covers the GPU work after.
   const done = !active && progress >= 100 && ready

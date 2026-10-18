@@ -47,7 +47,7 @@ const SOUNDS: SoundName[] = ['piano', 'synth', 'musicbox', 'triangle', 'sine', '
 /** Sound keys 1–9; the selected one stays latched. */
 function SoundKey({ n, className }: { n: number; className?: string }) {
   const sound = SOUNDS[n - 1]
-  const active = store.use((s) => s.sound === sound)
+  const active = store.use('sound') === sound
   return (
     <Button
       text={sound}
@@ -60,7 +60,7 @@ function SoundKey({ n, className }: { n: number; className?: string }) {
 }
 
 function ScreenKey({ id, icon }: { id: ScreenId; icon: typeof PlayGlyph }) {
-  const active = store.use((s) => s.screen === id)
+  const active = store.use('screen') === id
   return (
     <Button
       text={`${id.toLowerCase()} sequencer`}
@@ -74,8 +74,8 @@ function ScreenKey({ id, icon }: { id: ScreenId; icon: typeof PlayGlyph }) {
 const PARAMETERS: ParameterId[] = ['blue', 'brown', 'gray', 'orange']
 
 export default function App() {
-  const playing = store.use((s) => s.playing)
-  const recording = store.use((s) => s.recordStart > 0)
+  const playing = store.use('playing')
+  const recording = store.use('recordStart') > 0
 
   // The deck is an auto-placed grid: source order is layout order.
   return (

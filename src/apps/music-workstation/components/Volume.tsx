@@ -11,7 +11,7 @@ type VolumeProps = {
 
 export function Volume({ onChange, onMute }: VolumeProps) {
   const { rotation, handlers } = useDial(onChange)
-  const muted = store.use(({ muted }) => muted)
+  const muted = store.use('muted')
 
   return (
     <Base className='col-span-2 row-span-4 grid-rows-2'>

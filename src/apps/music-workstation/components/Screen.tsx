@@ -29,10 +29,10 @@ function useElapsed(since: number) {
 
 /** The bottom band shared by every screen: sound, mute, tape. */
 function Status() {
-  const sound = store.use(({ sound }) => sound)
-  const start = store.use(({ recordStart }) => recordStart)
-  const take = store.use(({ take }) => take)
-  const muted = store.use(({ muted }) => muted)
+  const sound = store.use('sound')
+  const start = store.use('recordStart')
+  const take = store.use('take')
+  const muted = store.use('muted')
   const elapsed = useElapsed(start)
 
   // Three fixed slots — sound, mute, tape — so nothing shifts as they change.
@@ -71,7 +71,7 @@ function Status() {
 }
 
 export function Screen() {
-  const Content = SCREENS[store.use(({ screen }) => screen)]
+  const Content = SCREENS[store.use('screen')]
 
   return (
     <div className='bg-screen-border col-span-12 row-span-6 rounded p-px text-white'>
