@@ -65,3 +65,27 @@ async function measureGpuTier(): Promise<Tier> {
     requestAnimationFrame(loop)
   })
 }
+
+/** Saves `file` (a blob, or a URL its owner manages) as `name`. */
+export function download(file: Blob | string, name: string) {
+  const a = document.createElement('a')
+  a.href = typeof file === 'string' ? file : URL.createObjectURL(file)
+  a.download = name
+  a.click()
+  // Revoking right away can cancel the download in some browsers.
+  if (typeof file !== 'string') setTimeout(() => URL.revokeObjectURL(a.href))
+}
+
+/** HSL to hex, with `h` in degrees and `s` and `l` in 0–1. */
+export function hslToHex(h: number, s: number, l: number) {
+  const a = s * Math.min(l, 1 - l)
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12
+    return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))
+  }
+  const hex = (x: number) =>
+    Math.round(x * 255)
+      .toString(16)
+      .padStart(2, '0')
+  return `#${hex(f(0))}${hex(f(8))}${hex(f(4))}`
+}

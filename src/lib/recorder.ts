@@ -1,5 +1,6 @@
 import { audioContext, globalGain } from './audio'
 import { clientOnly } from './ssr'
+import { download } from './utils'
 
 /**
  * Records the app's audio output — everything routed through `globalGain`,
@@ -76,11 +77,7 @@ export class Recorder {
 
   /** Saves the last take to a file. No-op if there's no take. */
   download(filename = 'recording.webm') {
-    if (!this.url) return
-    const a = document.createElement('a')
-    a.href = this.url
-    a.download = filename
-    a.click()
+    if (this.url) download(this.url, filename)
   }
 
   /** Resets everything to default state. */
