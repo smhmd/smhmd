@@ -14,6 +14,8 @@ import {
   mergeVertices,
 } from 'three/addons/utils/BufferGeometryUtils.js'
 
+import { batch, doc } from '../core'
+import * as model from './geometry'
 import { data } from './geometry'
 import { matcap } from './materials'
 import { weld } from './weld'
@@ -149,7 +151,7 @@ function material(source: Material | Material[]) {
   })
 }
 
-/** Loads a model into `data`: every mesh merged into one geometry, one part each. */
+/** Opens a model as a new document: every mesh merged into one geometry, one part each. */
 export async function parse(name: string, buffer: ArrayBuffer) {
   const root = await load(name, buffer)
   root.updateMatrixWorld(true)
@@ -200,22 +202,22 @@ export async function parse(name: string, buffer: ArrayBuffer) {
     const n = piece.getAttribute('position').count
     const { name } = sources[i]
     const faces = piece.index!.count
-    const part = { name, start, count: n, faces, hidden: false, cls: -1 }
+    const part = { name, start, count: n, faces, hidden: false }
     start += n
     return part
   })
 
-  // The drawn, ghost and preview indices are refilled in place; a part's
+  // The drawn, X-ray and preview indices are refilled in place; a part's
   // outline is just a draw range over the original triangles.
   const triangles = Uint32Array.from(geometry.index!.array)
-  const [ghost, outline, preview] = [0, 0, 0].map(() => {
+  const [xray, outline, preview] = [0, 0, 0].map(() => {
     const g = new BufferGeometry()
     for (const [name, attribute] of Object.entries(geometry.attributes))
       g.setAttribute(name, attribute)
     return g
   })
   geometry.setIndex(new BufferAttribute(triangles.slice(), 1))
-  ghost.setIndex(new BufferAttribute(triangles.slice(), 1))
+  xray.setIndex(new BufferAttribute(triangles.slice(), 1))
   outline.setIndex(new BufferAttribute(triangles, 1))
   preview.setIndex(new BufferAttribute(triangles.slice(), 1))
   preview.setDrawRange(0, 0)
@@ -226,19 +228,17 @@ export async function parse(name: string, buffer: ArrayBuffer) {
   )
   const box = geometry.boundingBox!
 
-  for (const g of [data.geometry, data.ghost, data.outline, data.preview])
+  for (const g of [data.geometry, data.xray, data.outline, data.preview])
     g?.dispose()
   Object.assign(data, {
     geometry,
-    ghost,
+    xray,
     outline,
     preview,
     triangles,
-    present: new Uint8Array(count),
-    shown: new Uint8Array(count),
+    visible: new Uint8Array(count),
+    solid: new Uint8Array(count),
     materials: sources.map((s) => material(s.material)),
-    parts,
-    labels: new Int32Array(count).fill(-1),
     center: center.toArray(),
     scale: radius,
     info: {
@@ -248,5 +248,11 @@ export async function parse(name: string, buffer: ArrayBuffer) {
       materials: used.size,
       textures: maps.size,
     },
+  })
+  batch(() => {
+    doc.reset(count)
+    model.parts.value = parts
+    model.name.value = name
+    model.opened.value++
   })
 }

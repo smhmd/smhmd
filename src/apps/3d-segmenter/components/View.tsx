@@ -15,7 +15,7 @@ import {
   ViewInAr,
 } from 'src/icons'
 
-import { api, type Shading, ui } from '../lib'
+import { api, session, type Shading, useValue } from '../lib'
 import { button, island, item, Tip } from './ui'
 
 const on = 'aria-pressed:bg-white/12 aria-pressed:text-white'
@@ -34,10 +34,12 @@ const SHADING: {
 /** What both the toolbar and the phone menu show. */
 function useViewState() {
   return {
-    fit: ui.use((s) => (s.part >= 0 ? 'Fit Part to View' : 'Fit to View')),
-    xray: ui.use('xray'),
-    grid: ui.use('grid'),
-    shading: ui.use('shading'),
+    fit: useValue(() =>
+      session.selectedPart.value >= 0 ? 'Fit Part to View' : 'Fit to View',
+    ),
+    xray: useValue(session.xray),
+    grid: useValue(session.grid),
+    shading: useValue(session.shading),
   }
 }
 
@@ -69,7 +71,7 @@ export function View() {
           aria-label='X-ray'
           aria-pressed={xray}
           className={clsx(button, on)}
-          onClick={() => api.toggle('xray')}>
+          onClick={api.toggleXray}>
           <FlipToBack aria-hidden />
         </Toolbar.Button>
       </Tip>
@@ -78,7 +80,7 @@ export function View() {
           aria-label='Grid'
           aria-pressed={grid}
           className={clsx(button, on)}
-          onClick={() => api.toggle('grid')}>
+          onClick={api.toggleGrid}>
           <GridOn aria-hidden />
         </Toolbar.Button>
       </Tip>
@@ -128,7 +130,7 @@ export function ViewMenu() {
             <Menu.CheckboxItem
               className={clsx(item, 'h-10')}
               checked={xray}
-              onCheckedChange={() => api.toggle('xray')}>
+              onCheckedChange={api.toggleXray}>
               <FlipToBack aria-hidden className='size-4 fill-current' />
               X-ray
               <Menu.CheckboxItemIndicator className={check}>
@@ -138,7 +140,7 @@ export function ViewMenu() {
             <Menu.CheckboxItem
               className={clsx(item, 'h-10')}
               checked={grid}
-              onCheckedChange={() => api.toggle('grid')}>
+              onCheckedChange={api.toggleGrid}>
               <GridOn aria-hidden className='size-4 fill-current' />
               Grid
               <Menu.CheckboxItemIndicator className={check}>

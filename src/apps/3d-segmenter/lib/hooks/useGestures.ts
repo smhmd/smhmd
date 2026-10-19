@@ -2,10 +2,11 @@ import { useEffect, useRef } from 'react'
 
 import { api } from '../api'
 import { rect } from '../common'
+import * as editor from '../editor'
 import { MOD } from '../platform'
-import { ui } from '../state'
-import { tools } from '../tools'
-import { onGizmo, view } from '../view'
+import * as session from '../session'
+import { tool } from '../tools'
+import { onGizmo } from '../view'
 
 type Gesture = {
   id: number
@@ -30,7 +31,8 @@ const local = (e: React.PointerEvent) => {
   return [e.clientX - r.left, e.clientY - r.top] as const
 }
 
-const current = () => tools[ui.get().tool]
+const current = () => tool.peek()
+const { input } = editor
 
 /**
  * Turns pointer events on the stage into the active tool's press, drag and
@@ -66,7 +68,7 @@ export function useGestures() {
       if (e.code === 'Space')
         g.moving = current().gesture === 'box' && e.type === 'keydown'
       else if (e.key === 'Escape' && e.type === 'keydown') {
-        api.abort()
+        input.abort()
         end()
       }
     }
@@ -83,7 +85,7 @@ export function useGestures() {
     const element = stage.current!
     function wheel(e: WheelEvent) {
       const canvas = e.target instanceof HTMLCanvasElement
-      if (!canvas || !current().sized || view.hand || e.ctrlKey) return
+      if (!canvas || !current().ring || session.hand.peek() || e.ctrlKey) return
       e.preventDefault()
       e.stopPropagation()
       // Shift-scroll arrives as a horizontal scroll on macOS.
@@ -102,12 +104,17 @@ export function useGestures() {
     if (!(e.target instanceof HTMLCanvasElement)) return // overlay buttons
     if (gesture.current) {
       // A second finger: it was a navigation gesture after all.
-      api.abort()
+      input.abort()
       return end()
     }
     const [x, y] = local(e)
     // The gizmo navigates, whatever the tool: a tap turns the camera, a drag orbits.
-    if (view.hand || e.button !== 0 || !current().gesture || onGizmo(x, y))
+    if (
+      session.hand.peek() ||
+      e.button !== 0 ||
+      !current().gesture ||
+      onGizmo(x, y)
+    )
       return
     gesture.current = {
       id: e.pointerId,
@@ -119,7 +126,7 @@ export function useGestures() {
       moving: false,
     }
     e.currentTarget.setPointerCapture(e.pointerId)
-    api.press(x, y)
+    input.press(x, y)
   }
 
   function onPointerMove(e: React.PointerEvent) {
@@ -134,14 +141,14 @@ export function useGestures() {
       // finger, a drag from the gizmo or a right-drag navigates instead.
       ring.current.hidden = e.buttons !== 0 && g?.id !== e.pointerId
     }
-    if (!g && e.buttons === 0) api.hover(x, y)
+    if (!g && e.buttons === 0) input.hover(x, y)
     if (g?.id !== e.pointerId) return
     if (g.moving) {
       g.x += x - g.last[0]
       g.y += y - g.last[1]
     }
     g.last = [x, y]
-    api.drag(x, y)
+    input.drag(x, y)
     if (current().gesture === 'box' && Math.hypot(x - g.x, y - g.y) > CLICK) {
       Object.assign(draft.current!.style, rect([g.x, g.y, x, y]))
       draft.current!.hidden = false
@@ -153,7 +160,7 @@ export function useGestures() {
     if (g?.id !== e.pointerId) return
     end()
     const [x, y] = local(e)
-    api.release(x, y, {
+    input.release(x, y, {
       click: Math.hypot(x - g.x, y - g.y) <= CLICK,
       long: e.timeStamp - g.t >= LONG_PRESS,
       alt: g.alt,
@@ -162,13 +169,13 @@ export function useGestures() {
   }
 
   function onPointerCancel() {
-    if (gesture.current) api.abort()
+    if (gesture.current) input.abort()
     end()
   }
 
   function onPointerLeave() {
     if (ring.current) ring.current.style.translate = AWAY
-    api.leave()
+    input.leave()
   }
 
   return {

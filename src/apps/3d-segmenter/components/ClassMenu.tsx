@@ -1,6 +1,6 @@
 import { Menu } from '@base-ui/react/menu'
 
-import { doc } from '../lib'
+import { doc, useValue } from '../lib'
 import { item } from './ui'
 
 type ClassMenuProps = Menu.Positioner.Props & {
@@ -29,7 +29,7 @@ export function ClassMenu({
 }
 
 function Items({ onPick, keys }: Pick<ClassMenuProps, 'onPick' | 'keys'>) {
-  const classes = doc.use('classes')
+  const classes = useValue(doc.classes)
   return classes.map((c, i) => (
     <Menu.Item key={c.id} className={item} onClick={() => onPick(c.id)}>
       <span className='size-2.5 rounded-sm' style={{ background: c.color }} />

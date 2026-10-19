@@ -1,138 +1,153 @@
-import { beforeEach, describe, expect, test } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, test } from 'vitest'
 
-import { CLASSES } from '../../lib/common'
-import * as edit from '../../lib/edit'
-import { data } from '../../lib/mesh'
-import { doc, ui } from '../../lib/state'
-import { fill } from '../../lib/tools/fill'
-import { view } from '../../lib/view'
+import { api } from '../../lib/api'
+import { wire } from '../../lib/app'
+import * as editor from '../../lib/editor'
+import { doc } from '../../lib/core'
+import * as mesh from '../../lib/mesh'
+import * as session from '../../lib/session'
+import { fill, move } from '../../lib/tools'
 import { at, grid, labeled, load, look } from './fixtures'
 
 const release = { click: true, long: false, alt: false, from: [0, 0] as const }
+const all = () => [...doc.labels.peek().keys()]
+const past = () => doc.history.value.past.length
+
+/** A click: press and release in place. */
+function click(x: number, y: number, how = release) {
+  editor.input.press(...at(x, y))
+  editor.input.release(...at(x, y), how)
+}
+
+beforeAll(wire)
 
 /** Two halves of a plane meeting along a groove at x = 0, like two teeth. */
 beforeEach(async () => {
   await load({
     Plane: grid(40, (x) => -0.4 * Math.max(0, 1 - Math.abs(x) / 0.1)),
   })
-  doc.set({ classes: CLASSES, active: 0, parts: data.parts })
-  ui.set({ radius: 160 })
-  view.shift = false
-  edit.forget()
-  edit.sync()
+  api.setTool(fill.tool)
+  session.radius.value = 160
+  session.shift.value = false
+  session.pointer.value = null
   look()
 })
 
-const x = (v: number) => data.geometry!.getAttribute('position').getX(v)
+const x = (v: number) => mesh.data.geometry!.getAttribute('position').getX(v)
 const side = (sign: number) =>
-  [...data.labels.keys()].filter(
-    (v) => data.labels[v] === 0 && Math.sign(x(v)) === sign,
-  ).length
+  all().filter((v) => doc.labels.peek()[v] === 0 && Math.sign(x(v)) === sign)
+    .length
 
 describe('Fill', () => {
   test('a click fills within the ring, up to the groove', () => {
-    fill.press!(...at(-0.3, 0))
-    fill.release!(...at(-0.3, 0), release)
+    click(-0.3, 0)
     expect(side(-1)).toBeGreaterThan(0)
     expect(side(1)).toBe(0)
   })
 
   test('the ring limits its reach', () => {
-    ui.set({ radius: 20 })
-    fill.press!(...at(-0.5, 0))
-    fill.release!(...at(-0.5, 0), release)
+    session.radius.value = 20
+    click(-0.5, 0)
     const small = labeled()
-    edit.undo()
-    ui.set({ radius: 80 })
-    fill.press!(...at(-0.5, 0))
-    fill.release!(...at(-0.5, 0), release)
+    doc.undo()
+    session.radius.value = 80
+    click(-0.5, 0)
     expect(labeled()).toBeGreaterThan(small)
   })
 
   test('held Shift takes the whole piece, groove and all', () => {
-    view.shift = true
-    fill.press!(...at(-0.3, 0))
-    fill.release!(...at(-0.3, 0), release)
-    expect(labeled()).toBe(data.labels.length)
+    session.shift.value = true
+    click(-0.3, 0)
+    expect(labeled()).toBe(doc.labels.peek().length)
   })
 
   test('the Shift preview is exactly what a Shift-click takes', () => {
-    view.shift = true
-    fill.hover!(at(-0.3, 0))
-    const previewed = data.preview.drawRange.count
-    fill.press!(...at(-0.3, 0))
-    fill.release!(...at(-0.3, 0), release)
-    expect(previewed).toBe(data.triangles.length)
+    session.shift.value = true
+    editor.input.hover(...at(-0.3, 0))
+    expect(mesh.data.preview.drawRange.count).toBe(mesh.data.triangles.length)
+  })
+
+  test('the preview clears while a drag is underway, and comes back after', () => {
+    editor.input.hover(...at(-0.3, 0))
+    expect(mesh.data.preview.drawRange.count).toBeGreaterThan(0)
+    editor.input.press(...at(-0.3, 0))
+    expect(mesh.data.preview.drawRange.count).toBe(0)
+    editor.input.release(...at(-0.3, 0), release)
+    expect(mesh.data.preview.drawRange.count).toBeGreaterThan(0)
+  })
+
+  test('switching tools clears the preview', () => {
+    editor.input.hover(...at(-0.3, 0))
+    api.setTool(move.tool)
+    expect(mesh.data.preview.drawRange.count).toBe(0)
+    api.setTool(fill.tool)
   })
 
   test('a drag is one undo step', () => {
-    fill.press!(...at(-0.6, 0))
-    fill.drag!(...at(-0.6, 0.5))
-    fill.drag!(...at(-0.6, -0.5))
-    fill.release!(...at(-0.6, -0.5), { ...release, click: false })
-    expect(ui.get().past).toBe(1)
-    edit.undo()
+    editor.input.press(...at(-0.6, 0))
+    editor.input.drag(...at(-0.6, 0.5))
+    editor.input.drag(...at(-0.6, -0.5))
+    editor.input.release(...at(-0.6, -0.5), { ...release, click: false })
+    expect(past()).toBe(1)
+    doc.undo()
     expect(labeled()).toBe(0)
   })
 
   test('a drag stays on the side it started on, even across the groove', () => {
-    fill.press!(...at(-0.4, 0))
-    fill.drag!(...at(-0.1, 0))
-    fill.drag!(...at(0.2, 0))
-    fill.drag!(...at(0.5, 0))
-    fill.release!(...at(0.5, 0), { ...release, click: false })
+    editor.input.press(...at(-0.4, 0))
+    editor.input.drag(...at(-0.1, 0))
+    editor.input.drag(...at(0.2, 0))
+    editor.input.drag(...at(0.5, 0))
+    editor.input.release(...at(0.5, 0), { ...release, click: false })
     expect(side(-1)).toBeGreaterThan(0)
     expect(side(1)).toBe(0)
   })
 
   test('starting inside the groove opens it, but not the side beyond', () => {
-    fill.press!(...at(0, 0))
-    fill.release!(...at(0, 0), release)
+    click(0, 0)
     expect(labeled()).toBeGreaterThan(0)
-    expect(labeled()).toBeLessThan(data.labels.length)
+    expect(labeled()).toBeLessThan(doc.labels.peek().length)
   })
 
   test('stops at another class', () => {
     const band = (v: number) => x(v) > -0.45 && x(v) < -0.35
-    data.labels.forEach((_, v) => band(v) && (data.labels[v] = 1))
+    doc.transact((tx) => tx.paint(all().filter(band), 1))
     const before = labeled(1)
-    fill.press!(...at(-0.6, 0))
-    fill.release!(...at(-0.6, 0), release)
+    click(-0.6, 0)
     expect(labeled(1)).toBe(before)
-    expect(
-      [...data.labels.keys()].some((v) => data.labels[v] === 0 && x(v) > -0.35),
-    ).toBe(false)
+    expect(all().some((v) => doc.labels.peek()[v] === 0 && x(v) > -0.35)).toBe(
+      false,
+    )
   })
 
   test('refills an area it starts on, so a class can be swapped', () => {
-    data.labels.forEach((_, v) => x(v) < 0 && (data.labels[v] = 1))
-    fill.press!(...at(-0.6, 0))
-    fill.release!(...at(-0.6, 0), release)
+    doc.transact((tx) =>
+      tx.paint(
+        all().filter((v) => x(v) < 0),
+        1,
+      ),
+    )
+    click(-0.6, 0)
     expect(labeled(0)).toBeGreaterThan(0)
   })
 
   test('a long press takes the whole piece', () => {
-    fill.press!(...at(-0.3, 0))
-    fill.release!(...at(-0.3, 0), { ...release, long: true })
-    expect(labeled()).toBe(data.labels.length)
+    click(-0.3, 0, { ...release, long: true })
+    expect(labeled()).toBe(doc.labels.peek().length)
   })
 
-  test('abort undoes the stroke so far', () => {
-    fill.press!(...at(-0.3, 0))
-    fill.abort!()
+  test('abort undoes the stroke so far, with no step', () => {
+    editor.input.press(...at(-0.3, 0))
+    editor.input.abort()
     expect(labeled()).toBe(0)
-    expect(ui.get()).toMatchObject({ past: 0, future: 0 })
+    expect(doc.history.value).toEqual({ past: [], future: [] })
   })
 })
 
 test('a big flat face fills from anywhere on it, far from its corners', async () => {
   await load({ Quad: grid(1, () => 0) })
-  doc.set({ classes: CLASSES, active: 0, parts: data.parts })
-  ui.set({ radius: 20 })
-  edit.forget()
-  edit.sync()
+  session.radius.value = 20
   look()
-  fill.press!(...at(0.3, -0.2))
-  fill.release!(...at(0.3, -0.2), release)
+  click(0.3, -0.2)
   expect(labeled()).toBe(3)
 })

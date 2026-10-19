@@ -1,13 +1,13 @@
 import clsx from 'clsx'
 
-import { prompts, rect } from '../lib'
+import { rect, smart, useValue } from '../lib'
 
 export const BOX =
   'pointer-events-none absolute rounded-sm border border-dashed'
 
 /** Smart Select's box and points, as last sent to the model. */
 export function Prompts() {
-  const { points, box } = prompts.use()
+  const { points, box } = useValue(smart.prompts)
   return (
     <>
       {box && (

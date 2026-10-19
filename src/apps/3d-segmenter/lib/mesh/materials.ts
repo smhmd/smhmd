@@ -33,8 +33,8 @@ export const OVERLAY = new MeshBasicMaterial({
   polygonOffsetUnits: -1,
 })
 
-/** Hidden faces stay faintly visible for context, but never block the view. */
-export const GHOST = new MeshBasicMaterial({
+/** X-ray: labeled faces stay faintly visible for context, but never block the view. */
+export const XRAY = new MeshBasicMaterial({
   vertexColors: true,
   transparent: true,
   opacity: 0.2,

@@ -3,16 +3,24 @@ import clsx from 'clsx'
 
 import { Redo, Undo } from 'src/icons'
 
-import { activeClass, api, doc, RADIUS, REDO_KEYS, ui, UNDO_KEYS } from '../lib'
+import {
+  api,
+  doc,
+  RADIUS,
+  REDO_KEYS,
+  session,
+  tool,
+  UNDO_KEYS,
+  useValue,
+} from '../lib'
 import { ClassMenu } from './ClassMenu'
-import { TOOLS } from './tools'
 import { button, IconButton, island, Range, small, Tip } from './ui'
 
-/** Procreate's sidebar: the ring's size, the class you're labeling with, then undo and redo. */
+/** Sidebar: the ring's size, the class you're labeling with, then undo and redo. */
 export function Rail() {
-  const size = ui.use((s) => TOOLS[s.tool].size)
-  const canUndo = ui.use((s) => s.past > 0)
-  const canRedo = ui.use((s) => s.future > 0)
+  const label = useValue(() => tool.value.ring?.label)
+  const canUndo = useValue(doc.canUndo)
+  const canRedo = useValue(doc.canRedo)
 
   return (
     <div
@@ -23,11 +31,11 @@ export function Rail() {
         'bottom-28 lg:bottom-auto lg:top-1/2 lg:-translate-y-1/2',
       )}>
       {/* Always there, like Procreate's: muted outside the brush and eraser, but still adjustable. */}
-      <Tip label={size ?? 'Brush Size'} keys='[ ]'>
+      <Tip label={label ?? 'Brush Size'} keys='[ ]'>
         <span
           className={clsx(
             'hocus-within:opacity-100 mb-1.5 block transition-opacity',
-            !size && 'opacity-40',
+            !label && 'opacity-40',
           )}>
           <Size />
         </span>
@@ -54,7 +62,7 @@ export function Rail() {
 }
 
 function Size() {
-  const radius = ui.use('radius')
+  const radius = useValue(session.radius)
   return (
     <Range
       label='Brush Size'
@@ -68,8 +76,8 @@ function Size() {
 
 /** Where Procreate puts its color square: the active class, and a menu to switch it. */
 function Picker() {
-  const name = doc.use((s) => activeClass(s)?.name)
-  const color = doc.use((s) => activeClass(s)?.color)
+  const name = useValue(() => doc.activeClass.value?.name)
+  const color = useValue(() => doc.activeClass.value?.color)
 
   return (
     <Menu.Root>

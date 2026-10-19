@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react'
 
-import { data, doc, ui } from '../lib'
+import { doc, mesh, smart, tool, useValue } from '../lib'
 import { About } from './About'
 import { Actions } from './Actions'
 import { SamCam } from './SamCam'
@@ -11,7 +11,8 @@ const row =
 
 /** The file and what it holds, then the SAM Cam and About. Large screens only. */
 export function Inspector() {
-  const smart = ui.use((s) => s.tool === 'smart')
+  // The SAM Cam shows what Smart Select's model sees.
+  const samCam = useValue(() => tool.value === smart.tool)
 
   return (
     <aside className='no-scrollbar flex flex-col overflow-y-auto max-lg:hidden lg:col-start-3 lg:row-span-2 lg:row-start-1'>
@@ -22,7 +23,7 @@ export function Inspector() {
       {/* Anchored to the bottom, so it can come and go without moving anything above. */}
       <div className='mt-auto'>
         <AnimatePresence initial={false}>
-          {smart && (
+          {samCam && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -47,9 +48,15 @@ const measure = (n: number) =>
   n.toLocaleString(undefined, { maximumSignificantDigits: 3 })
 
 function Stats() {
-  ui.use('mesh') // a new model, even under the same name
-  const name = doc.use('name')
-  const { format, bytes: size, size: extent, materials, textures } = data.info
+  useValue(mesh.opened) // a new model, even under the same name
+  const name = useValue(mesh.name)
+  const {
+    format,
+    bytes: size,
+    size: extent,
+    materials,
+    textures,
+  } = mesh.data.info
   if (!name) return null
   // glTF is in meters; OBJ, PLY and STL don't say.
   const unit = format === 'GLB' || format === 'GLTF' ? ' m' : ''
@@ -58,9 +65,9 @@ function Stats() {
     ['Name', name],
     ['File', `${format}, ${bytes(size)}`],
     ['Size', extent.map(measure).join(' × ') + unit],
-    ['Parts', data.parts.length.toLocaleString()],
-    ['Vertices', data.labels.length.toLocaleString()],
-    ['Faces', (data.triangles.length / 3).toLocaleString()],
+    ['Parts', mesh.parts.peek().length.toLocaleString()],
+    ['Vertices', doc.labels.peek().length.toLocaleString()],
+    ['Faces', (mesh.data.triangles.length / 3).toLocaleString()],
     ['Materials', materials.toLocaleString()],
     ['Textures', textures ? textures.toLocaleString() : 'None'],
   ]

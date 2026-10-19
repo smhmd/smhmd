@@ -34,7 +34,9 @@ test('with X-ray, the eraser still reaches the labels it sees through', async ({
   page,
 }) => {
   await page.keyboard.press('x')
-  await expect.poll(() => page.evaluate(() => window.m.view.dirty)).toBe(false)
+  await expect
+    .poll(() => page.evaluate(() => window.m.view.stale.value))
+    .toBe(false)
   await paint(page, 'Cracker box')
   const painted = await labeled(page)
   expect(painted).toBeGreaterThan(0)
@@ -98,8 +100,8 @@ test('the hand key (⌘ or Ctrl) turns any tool into the hand: dragging orbits i
   const at = await on(page, 'Cracker box')
   const view = () =>
     page.evaluate(() => ({
-      camera: window.m.view.camera!.position.toArray(),
-      target: window.m.view.controls!.target.toArray(),
+      camera: window.m.view.three.camera!.position.toArray(),
+      target: window.m.view.three.controls!.target.toArray(),
     }))
   const before = await view()
   await page.mouse.move(at.x, at.y)

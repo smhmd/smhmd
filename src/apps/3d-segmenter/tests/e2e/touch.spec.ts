@@ -21,7 +21,7 @@ test('in Smart Select, two fingers orbit and pinch, and the first finger’s box
     })
   const camera = () =>
     page.evaluate(() => {
-      const { camera, controls } = window.m.view
+      const { camera, controls } = window.m.view.three
       return {
         x: camera!.position.x,
         distance: camera!.position.distanceTo(controls!.target),
@@ -46,7 +46,7 @@ test('in Smart Select, two fingers orbit and pinch, and the first finger’s box
   await touch('touchEnd', [])
   // Regression: the controls never saw the first finger, so the camera flashed elsewhere.
   expect(xs.every((x, i) => x < (i ? xs[i - 1] : start.x))).toBe(true)
-  expect(await page.evaluate(() => window.m.prompts.get().box)).toBeNull()
+  expect(await page.evaluate(() => window.m.smart.prompts.value.box)).toBeNull()
 
   // Pinch apart to zoom in.
   const before = (await camera()).distance
@@ -69,7 +69,7 @@ test('the ring shows for the tool’s own finger, not while navigating', async (
   context,
 }) => {
   await open(page)
-  await page.evaluate(() => window.m.api.setTool('brush'))
+  await page.evaluate(() => window.m.api.setTool(window.m.brush.tool))
   const cdp = await context.newCDPSession(page)
   const touch = (
     type: 'touchStart' | 'touchMove' | 'touchEnd',
@@ -103,8 +103,8 @@ test('the ring shows for the tool’s own finger, not while navigating', async (
 
   // So does a drag that starts on the gizmo, even once it leaves it.
   const gizmo = await page.evaluate(() => {
-    const r = window.m.view.gl!.domElement.getBoundingClientRect()
-    const [mx, my] = window.m.gizmoMargin(innerWidth)
+    const r = window.m.view.three.gl!.domElement.getBoundingClientRect()
+    const [mx, my] = window.m.view.gizmoMargin(innerWidth)
     return [r.right - mx, r.bottom - my] as [number, number]
   })
   await touch('touchStart', [gizmo])

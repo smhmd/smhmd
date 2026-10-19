@@ -20,6 +20,7 @@
     "@huggingface/transformers": "4.3.1",
     "@material-icons/svg": "^1.0.33",
     "@pixi/react": "^8.0.5",
+    "@preact/signals-core": "1.14.4",
     "@react-router/node": "^7.10.1",
     "@react-router/serve": "^7.10.1",
     "@react-three/csg": "^4.0.0",

@@ -62,7 +62,7 @@ test('Space mid-drag moves the box instead of resizing it', async ({
   await page.keyboard.up('Space')
   await expect(page.locator('body')).not.toHaveAttribute('data-hand')
   await page.mouse.up()
-  const sent = await page.evaluate(() => window.m.prompts.get().box!)
+  const sent = await page.evaluate(() => window.m.smart.prompts.value.box!)
   expect(sent[2] - sent[0]).toBeCloseTo(80, 0)
 })
 
@@ -76,7 +76,7 @@ test('an Alt-click excludes', async ({ page }) => {
   await page.keyboard.down('Alt')
   await page.mouse.click(at.x, at.y)
   await page.keyboard.up('Alt')
-  const points = await page.evaluate(() => window.m.prompts.get().points)
+  const points = await page.evaluate(() => window.m.smart.prompts.value.points)
   expect(points.map((p) => p.positive)).toEqual([false])
   await expect.poll(() => labeled(page)).toBeLessThan(before)
 })
@@ -96,8 +96,8 @@ test('the model sees the view on the app’s own background', async ({
   page,
 }) => {
   const [corner, background] = await page.evaluate(() => [
-    [...window.m.view.frame!.data.slice(0, 3)],
-    window.m.BACKGROUND,
+    [...window.m.view.captured.value!.frame!.data.slice(0, 3)],
+    window.m.view.BACKGROUND,
   ])
   const gray = parseInt(background.slice(1, 3), 16)
   expect(corner).toEqual([gray, gray, gray])
@@ -106,14 +106,14 @@ test('the model sees the view on the app’s own background', async ({
 /** Where the gizmo draws an axis head, in page pixels. */
 const head = (page: Page, direction: [number, number, number]) =>
   page.evaluate((direction) => {
-    const { view, gizmoMargin } = window.m
-    const r = view.gl!.domElement.getBoundingClientRect()
+    const { three, gizmoMargin } = window.m.view
+    const r = three.gl!.domElement.getBoundingClientRect()
     const [mx, my] = gizmoMargin(innerWidth)
     // The gizmo turns with the camera: the head sits along the axis, seen from it.
-    const [x, y] = view
+    const [x, y] = three
       .camera!.position.clone()
       .set(...direction)
-      .applyQuaternion(view.camera!.quaternion.clone().invert())
+      .applyQuaternion(three.camera!.quaternion.clone().invert())
       .toArray()
     return { x: r.right - mx + 40 * x, y: r.bottom - my - 40 * y }
   }, direction)
@@ -121,7 +121,7 @@ const head = (page: Page, direction: [number, number, number]) =>
 /** How closely the camera looks down +Y: 1 when straight down. */
 const fromAbove = (page: Page) =>
   page.evaluate(() => {
-    const { camera, controls } = window.m.view
+    const { camera, controls } = window.m.view.three
     return camera!.position.clone().sub(controls!.target).normalize().y
   })
 
@@ -137,7 +137,7 @@ test('a tap on a gizmo axis looks down it; a drag from it orbits, never selectin
   const dragged = await fromAbove(page)
   expect(dragged).not.toBeCloseTo(before, 3)
   expect(dragged).toBeLessThan(0.99)
-  expect(await page.evaluate(() => window.m.prompts.get())).toEqual({
+  expect(await page.evaluate(() => window.m.smart.prompts.value)).toEqual({
     points: [],
     box: null,
   })

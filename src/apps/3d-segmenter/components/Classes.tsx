@@ -4,12 +4,12 @@ import clsx from 'clsx'
 
 import { Add, Close, ColorReset, Visibility, VisibilityOff } from 'src/icons'
 
-import { api, type Cls, data, doc } from '../lib'
+import { api, doc, mesh, useValue } from '../lib'
 import { Fold, IconButton, small, Tip, Trailing } from './ui'
 
 export function Classes() {
-  const classes = doc.use('classes')
-  const active = doc.use('active')
+  const classes = useValue(doc.classes)
+  const active = useValue(doc.activeId)
 
   return (
     <Fold
@@ -33,9 +33,11 @@ export function Classes() {
 }
 
 /** The one place that names the unit, so rows can show bare numbers. */
-function Progress({ classes }: { classes: Cls[] }) {
-  const total = data.labels.length
-  const labeled = classes.reduce((sum, c) => sum + c.count, 0)
+function Progress({ classes }: { classes: doc.Cls[] }) {
+  const { counts } = useValue(mesh.tally)
+  const count = (id: number) => counts.get(id) ?? 0
+  const total = [...counts.values()].reduce((sum, n) => sum + n, 0)
+  const labeled = classes.reduce((sum, c) => sum + count(c.id), 0)
   const percent = total ? Math.round((labeled / total) * 100) : 0
 
   return (
@@ -52,7 +54,7 @@ function Progress({ classes }: { classes: Cls[] }) {
             key={c.id}
             className='transition-[width] duration-300'
             style={{
-              width: `${total ? (c.count / total) * 100 : 0}%`,
+              width: `${total ? (count(c.id) / total) * 100 : 0}%`,
               background: c.color,
             }}
           />
@@ -62,12 +64,13 @@ function Progress({ classes }: { classes: Cls[] }) {
   )
 }
 
-type RowProps = { cls: Cls; index: number; active: boolean }
+type RowProps = { cls: doc.Cls; index: number; active: boolean }
 
 /** Memoized on a class object that only changes when that class does. */
 const Row = memo(({ cls, index, active }: RowProps) => {
   const [editing, setEditing] = useState(false)
-  const { id, name, color, hidden, count } = cls
+  const { id, name, color, hidden } = cls
+  const count = useValue(() => mesh.tally.value.counts.get(id) ?? 0, [id])
 
   function rename(value: string) {
     if (value.trim()) api.editClass(id, { name: value.trim() })

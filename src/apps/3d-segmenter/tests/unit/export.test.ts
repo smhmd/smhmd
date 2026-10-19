@@ -6,10 +6,10 @@ import { join } from 'node:path'
 import { BoxGeometry, SphereGeometry } from 'three'
 import { beforeEach, describe, expect, test } from 'vitest'
 
-import { CLASSES } from '../../lib/common'
 import { ply } from '../../lib/export/ply'
 import { supervisely } from '../../lib/export/supervisely'
-import { data, refresh } from '../../lib/mesh'
+import { doc } from '../../lib/core'
+import * as mesh from '../../lib/mesh'
 import { load } from './fixtures'
 
 // Off the origin, so a lost center would show.
@@ -27,8 +27,8 @@ describe('ply', () => {
   test('writes every vertex and face', () => {
     const all = lines()
     const head = header(all)
-    const vertices = data.labels.length
-    const faces = data.triangles.length / 3
+    const vertices = doc.labels.peek().length
+    const faces = mesh.data.triangles.length / 3
     expect(head).toContain(`element vertex ${vertices}`)
     expect(head).toContain(`element face ${faces}`)
     expect(all.length).toBe(head.length + vertices + faces)
@@ -44,9 +44,12 @@ describe('ply', () => {
   // Regression: faces came from the drawn index, which leaves out hidden and X-rayed triangles.
   test('hidden parts and X-ray change nothing', () => {
     const before = lines()
-    data.labels.fill(0, 0, 10)
-    data.parts[1].hidden = true
-    refresh(true)
+    doc.transact((tx) => tx.fill(0, 0, 10))
+    mesh.parts.value = mesh.parts.value.map((p, i) => ({
+      ...p,
+      hidden: i === 1,
+    }))
+    mesh.refresh(true)
     expect(lines()).toEqual(before)
   })
 })
@@ -55,7 +58,7 @@ describe('ply', () => {
 async function unpack(name: string) {
   const dir = mkdtempSync(join(tmpdir(), 'supervisely-'))
   const file = join(dir, 'export.tar')
-  const blob = supervisely(name, CLASSES)
+  const blob = supervisely(name, doc.CLASSES)
   writeFileSync(file, new Uint8Array(await blob.arrayBuffer()))
   execFileSync('tar', ['-xf', file, '-C', dir])
   const read = (path: string) => readFileSync(join(dir, path))
@@ -82,7 +85,7 @@ describe('supervisely', () => {
     const meta = json('meta.json')
     expect(meta.projectType).toBe('meshes')
     expect(meta.classes.map((c: { title: string }) => c.title)).toEqual(
-      CLASSES.map((c) => c.name),
+      doc.CLASSES.map((c) => c.name),
     )
     expect(
       meta.classes.every((c: { shape: string }) => c.shape === 'mesh'),
@@ -96,14 +99,16 @@ describe('supervisely', () => {
   })
 
   test('a label per class, its vertices as little-endian uint32', async () => {
-    const [box, ball] = data.parts
-    data.labels.fill(CLASSES[1].id, box.start, box.start + box.count)
-    data.labels[ball.start + 3] = CLASSES[2].id
+    const [box, ball] = mesh.parts.value
+    doc.transact((tx) => {
+      tx.fill(doc.CLASSES[1].id, box.start, box.start + box.count)
+      tx.paint([ball.start + 3], doc.CLASSES[2].id)
+    })
     const { read, json } = await unpack(name)
     const { labels } = json(`${folder}/annotation.json`)
     expect(labels.map((l: { classTitle: string }) => l.classTitle)).toEqual([
-      CLASSES[1].name,
-      CLASSES[2].name,
+      doc.CLASSES[1].name,
+      doc.CLASSES[2].name,
     ])
     const indices = (label: { geometry: { indicesPath: string } }) => {
       const bytes = read(`${folder}/${label.geometry.indicesPath}`)

@@ -7,7 +7,7 @@ import { Vector3 } from 'three'
 import { createTexture } from 'src/lib/graphics'
 import { HALF_PI, TAU } from 'src/lib/math'
 
-import { gizmoMargin } from '../lib'
+import { view } from '../lib'
 
 type Vec = [number, number, number]
 type Axis = { label: string; color: string; direction: Vec; rotation: Vec }
@@ -35,7 +35,7 @@ const AXES: Axis[] = [
  */
 export function Gizmo({ viewport }: { viewport: number }) {
   return (
-    <GizmoHelper alignment='bottom-right' margin={gizmoMargin(viewport)}>
+    <GizmoHelper alignment='bottom-right' margin={view.gizmoMargin(viewport)}>
       <group scale={40}>
         {AXES.map(({ label, color, direction, rotation }) => (
           <group key={label}>

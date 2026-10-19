@@ -4,8 +4,9 @@ import {
   PerspectiveCamera,
 } from 'three'
 
-import { data, parse } from '../../lib/mesh'
-import { view } from '../../lib/view'
+import { batch, doc } from '../../lib/core'
+import * as mesh from '../../lib/mesh'
+import * as view from '../../lib/view'
 
 /** Writes geometries as one OBJ, a named object each, so they load through the real `parse`. */
 function obj(parts: Record<string, BufferGeometry>) {
@@ -26,8 +27,14 @@ function obj(parts: Record<string, BufferGeometry>) {
   return new TextEncoder().encode(lines.join('\n')).buffer
 }
 
-export const load = (parts: Record<string, BufferGeometry>) =>
-  parse('test.obj', obj(parts))
+/** Opens the geometries as a new document, with the starting classes. */
+export async function load(parts: Record<string, BufferGeometry>) {
+  await mesh.parse('test.obj', obj(parts))
+  batch(() => {
+    doc.classes.value = doc.CLASSES
+    doc.activeId.value = doc.CLASSES[0].id
+  })
+}
 
 /**
  * A square grid in the XY plane, facing +Z, with `height(x, y)` as its Z:
@@ -54,27 +61,31 @@ export function grid(n: number, height: (x: number, y: number) => number) {
 }
 
 /**
- * Stands in for a capture: a camera on +Z, every drawn vertex visible, and
+ * Stands in for a capture: a camera on +Z, every solid vertex seen, and
  * screen = 500 + 400 × (x, -y) in the loaded (unit-sphere) space.
  */
-export function look() {
+export function look(frame: ImageData | null = null) {
   const camera = new PerspectiveCamera(35, 1, 0.05, 20)
   camera.position.set(0, 0, 3)
   camera.lookAt(0, 0, 0)
   camera.updateMatrixWorld()
-  const position = data.geometry!.getAttribute('position')
+  const position = mesh.data.geometry!.getAttribute('position')
   const screen = new Float32Array(position.count * 2)
   for (let v = 0; v < position.count; v++) {
     screen[v * 2] = 500 + 400 * position.getX(v)
     screen[v * 2 + 1] = 500 - 400 * position.getY(v)
   }
-  Object.assign(view, {
-    camera,
-    width: 1000,
-    height: 1000,
-    screen,
-    visible: data.shown.slice(),
-    dirty: false,
+  view.three.camera = camera
+  batch(() => {
+    view.captured.value = {
+      width: 1000,
+      height: 1000,
+      depth: new Float32Array(0),
+      screen,
+      seen: mesh.data.solid.slice(),
+      frame,
+    }
+    view.stale.value = false
   })
 }
 
@@ -83,4 +94,4 @@ export const at = (x: number, y: number) =>
   [500 + 400 * x, 500 - 400 * y] as const
 
 export const labeled = (id?: number) =>
-  data.labels.filter((l) => (id === undefined ? l >= 0 : l === id)).length
+  doc.labels.peek().filter((l) => (id === undefined ? l >= 0 : l === id)).length

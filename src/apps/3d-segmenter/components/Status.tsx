@@ -3,8 +3,7 @@ import { useEffect, useState } from 'react'
 import clsx from 'clsx'
 import { MotionConfig, motion } from 'motion/react'
 
-import { api, ui } from '../lib'
-import { TOOLS } from './tools'
+import { api, sam, session, smart, tool, useValue } from '../lib'
 
 type Tone = 'ok' | 'busy' | 'error'
 type Line = { tone: Tone; text: string; touch?: string; retry?: boolean }
@@ -25,14 +24,13 @@ function useLasting(on: boolean, ms = 500) {
 
 /** One line that always says what's happening, or what the current tool does next. */
 function useLine(): Line {
-  const tool = ui.use('tool')
-  const status = ui.use('status')
-  const selecting = ui.use('selecting')
-  const notice = ui.use('notice')
-  const opening = ui.use('opening')
+  const hint = useValue(() => tool.value.hint)
+  const status = useValue(sam.status)
+  const selecting = useValue(smart.selecting)
+  const notice = useValue(session.notice)
+  const opening = useValue(session.opening)
   // Clicks made meanwhile queue behind it, so it's only worth saying when it's slow.
   const analyzing = useLasting(status === 'encoding')
-  const { hint } = TOOLS[tool]
   // The first load is one wait (the sample, the download, starting up, the
   // first view, a box drawn meanwhile), so it reads as one line instead of
   // flickering through each.
@@ -41,7 +39,7 @@ function useLine(): Line {
   if (notice) return { tone: 'error', text: notice }
   if (loading) return { tone: 'busy', text: 'Loading Smart Select' }
   if (opening) return { tone: 'busy', text: `Opening ${opening}…` }
-  if (hint) return { tone: 'ok', text: hint[0], touch: hint[1] }
+  if (hint) return { tone: 'ok', text: hint.mouse, touch: hint.touch }
   if (status === 'error')
     return { tone: 'error', text: 'Smart Select couldn’t load', retry: true }
   if (analyzing) return { tone: 'busy', text: 'Analyzing view…' }
@@ -74,14 +72,17 @@ const spring = { type: 'spring', bounce: 0.25, duration: 0.45 } as const
  */
 export function Status() {
   const { tone, text, touch = text, retry } = useLine()
-  const selecting = ui.use('selecting')
+  const selecting = useValue(smart.selecting)
   // Just what's arrived, since the total grows as each file starts. A cached
   // model reads in a blink, so it only shows once the bytes keep coming.
-  const downloaded = ui.use((s) =>
-    s.tool === 'smart' && s.status === 'loading' && s.loaded < s.total
-      ? mb(s.loaded)
-      : 0,
-  )
+  const downloaded = useValue(() => {
+    const { loaded, total } = sam.progress.value
+    return tool.value === smart.tool &&
+      sam.status.value === 'loading' &&
+      loaded < total
+      ? mb(loaded)
+      : 0
+  })
   const counting = useLasting(downloaded > 0)
 
   return (
@@ -140,7 +141,7 @@ export function Status() {
             </button>
             <button
               type='button'
-              onClick={api.finish}
+              onClick={api.complete}
               className={clsx(pill, light)}>
               Apply <kbd className={clsx(kbd, 'text-neutral-500')}>space</kbd>
             </button>

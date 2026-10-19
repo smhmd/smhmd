@@ -1,7 +1,6 @@
 import { uuid } from 'src/lib/utils'
 
-import type { Cls } from '../common'
-import { data } from '../mesh'
+import { doc } from '../core'
 import { ply } from './ply'
 import { type Entry, tar } from './tar'
 
@@ -22,13 +21,13 @@ function uint32(values: number[]) {
  * class with the indices of its vertices.
  * https://docs.supervisely.com/customization-and-integration/00_ann_format_navi/09_supervisely_format_mesh
  */
-export function supervisely(name: string, classes: Cls[]) {
+export function supervisely(name: string, classes: doc.Cls[]) {
   const dataset = name.replace(/\.\w+$/, '')
   const mesh = `${dataset}.ply`
   const folder = `${dataset}/annotations/${mesh}`
 
   const vertices = new Map(classes.map((c) => [c.id, [] as number[]]))
-  data.labels.forEach((id, v) => vertices.get(id)?.push(v))
+  doc.labels.peek().forEach((id, v) => vertices.get(id)?.push(v))
   const labels = classes
     .filter((c) => vertices.get(c.id)!.length)
     .map((c) => ({ key: key(), cls: c }))

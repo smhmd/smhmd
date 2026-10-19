@@ -28,7 +28,8 @@ test('a Shift-click labels the whole part, as previewed', async ({ page }) => {
   await page.mouse.up()
   await page.keyboard.up('Shift')
   const part = await page.evaluate(
-    () => window.m.data.parts.find((p) => p.name === 'Cracker box')!.count,
+    () =>
+      window.m.mesh.parts.value.find((p) => p.name === 'Cracker box')!.count,
   )
   expect(await labeled(page)).toBe(part)
 })
@@ -49,7 +50,7 @@ test('a drag fills along the way, as one undo step', async ({ page }) => {
 test('the preview comes back once the camera settles', async ({ page }) => {
   const box = await on(page, 'Cracker box')
   await page.mouse.move(box.x, box.y)
-  await page.evaluate(() => window.m.api.move())
+  await page.evaluate(() => window.m.editor.cameraMoved())
   expect(await previewed(page)).toBe(0)
   await expect.poll(() => previewed(page)).toBeGreaterThan(0)
 })
@@ -71,7 +72,9 @@ test('with X-ray, the next part previews right after a fill', async ({
   page,
 }) => {
   await page.keyboard.press('x')
-  await expect.poll(() => page.evaluate(() => window.m.view.dirty)).toBe(false)
+  await expect
+    .poll(() => page.evaluate(() => window.m.view.stale.value))
+    .toBe(false)
   const box = await on(page, 'Cracker box')
   await page.mouse.move(box.x, box.y)
   await page.keyboard.down('Shift')

@@ -1,13 +1,13 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, test, vi } from 'vitest'
 
-import { CLASSES } from '../../lib/common'
-import * as edit from '../../lib/edit'
-import { data } from '../../lib/mesh'
+import { api } from '../../lib/api'
+import { wire } from '../../lib/app'
+import * as editor from '../../lib/editor'
+import { doc } from '../../lib/core'
 import { sam } from '../../lib/sam'
 import type { Reply, Request } from '../../lib/sam.worker'
-import { doc, prompts, ui } from '../../lib/state'
-import { cancel, finish, mask, smart } from '../../lib/tools/smart'
-import { view } from '../../lib/view'
+import * as session from '../../lib/session'
+import { smart } from '../../lib/tools'
 import { at, grid, labeled, load, look } from './fixtures'
 
 /** Stands in for EdgeTAM's worker: records requests, replies on demand. */
@@ -29,157 +29,182 @@ class FakeWorker {
 vi.stubGlobal('Worker', FakeWorker)
 
 const worker = () => FakeWorker.last
-const handlers = { ready: vi.fn(), mask: vi.fn() }
+const types = () => worker().sent.map((r) => r.type)
+/** The view the worker was last asked about. */
+const last = () => (worker().sent.at(-1) as { id: number }).id
+const past = () => doc.history.value.past.length
 
 /** A mask covering the screen square around (x, y) in the loaded space. */
 function square(x: number, y: number, half: number) {
-  const out = new Uint8Array(view.width * view.height)
+  const width = 1000
+  const out = new Uint8Array(width * width)
   const [cx, cy] = at(x, y)
   for (let j = Math.floor(cy - half); j < cy + half; j++)
     for (let i = Math.floor(cx - half); i < cx + half; i++)
-      out[j * view.width + i] = 1
+      out[j * width + i] = 1
   return out
 }
 
 const release = { click: false, long: false, alt: false }
+const frame = { data: new Uint8ClampedArray(4), width: 1, height: 1 }
+
+/** A capture with the textured view, as Smart Select gets. */
+const capture = () => look(frame as ImageData)
+
+const click = (x: number, y: number, how = {}) =>
+  editor.input.release(...at(x, y), {
+    ...release,
+    click: true,
+    from: at(x, y),
+    ...how,
+  })
+
+/** A click, and the model's answer: a square around it. */
+function select(half = 60) {
+  click(0, 0)
+  worker().reply({ type: 'mask', id: last(), mask: square(0, 0, half) })
+}
+
+beforeAll(wire)
 
 beforeEach(async () => {
-  vi.clearAllMocks()
   await load({ Plane: grid(20, () => 0) })
-  doc.set({ classes: CLASSES, active: 0, parts: data.parts })
-  edit.forget()
-  edit.sync()
-  look()
+  api.setTool(smart.tool)
   sam.stop()
-  sam.start(handlers)
+  sam.start()
   worker().reply({ type: 'ready' })
-  view.frame = {
-    data: new Uint8ClampedArray(4),
-    width: 1,
-    height: 1,
-  } as ImageData
-  sam.encode()
+  capture()
 })
 
 describe('the model client', () => {
   test('loads the model, then encodes each view once', () => {
-    expect(worker().sent.map((r) => r.type)).toEqual(['load', 'encode'])
-    expect(handlers.ready).toHaveBeenCalled()
-    const { id } = worker().sent.at(-1) as { id: number }
-    worker().reply({ type: 'encoded', id })
-    expect(ui.get().status).toBe('ready')
-    sam.moved()
-    sam.encode()
-    expect(ui.get().status).toBe('encoding')
+    expect(types()).toEqual(['load', 'encode'])
+    worker().reply({ type: 'encoded', id: last() })
+    expect(sam.status.value).toBe('ready')
+    editor.cameraMoved()
+    expect(sam.status.value).toBe('moving')
+    capture()
+    expect(types()).toEqual(['load', 'encode', 'encode'])
+    expect(sam.status.value).toBe('encoding')
   })
 
   test('loading lasts through the first view, through any orbiting', () => {
-    sam.moved()
-    sam.encode()
-    expect(ui.get().status).toBe('loading')
-    const { id } = worker().sent.at(-1) as { id: number }
-    worker().reply({ type: 'encoded', id })
-    expect(ui.get().status).toBe('ready')
+    editor.cameraMoved()
+    capture()
+    expect(sam.status.value).toBe('loading')
+    worker().reply({ type: 'encoded', id: last() })
+    expect(sam.status.value).toBe('ready')
   })
 
   test('drops a mask for a view that has moved on', () => {
-    const encoded = () => (worker().sent.at(-1) as { id: number }).id
-    const old = encoded()
-    sam.encode()
+    click(0, 0)
+    const old = last()
+    capture()
     worker().reply({ type: 'mask', id: old, mask: new Uint8Array(1) })
-    expect(handlers.mask).not.toHaveBeenCalled()
-    worker().reply({ type: 'mask', id: encoded(), mask: new Uint8Array(1) })
-    expect(handlers.mask).toHaveBeenCalledOnce()
+    expect(sam.mask.value).toBeNull()
+    worker().reply({ type: 'mask', id: last(), mask: new Uint8Array(1) })
+    expect(sam.mask.value).not.toBeNull()
   })
 
   test('a model that never loads says so', () => {
     worker().reply({ type: 'error', message: 'offline', fatal: true })
-    expect(ui.get().status).toBe('error')
+    expect(sam.status.value).toBe('error')
   })
 
   test('one failed view is a passing notice, not a broken model', () => {
     worker().reply({ type: 'error', message: 'out of memory', fatal: false })
-    expect(ui.get().status).toBe('ready')
-    expect(ui.get().notice).not.toBe('')
+    expect(sam.status.value).toBe('ready')
+    expect(session.notice.value).not.toBe('')
   })
 })
 
 describe('Smart Select', () => {
   test('a box drawn before the model is ready waits, then runs', () => {
-    finish()
     sam.stop()
-    sam.start(handlers)
-    smart.release!(...at(0.2, -0.2), { ...release, from: at(-0.2, 0.2) })
-    expect(prompts.get().box).not.toBeNull()
-    expect(worker().sent.some((r) => r.type === 'decode')).toBe(false)
-
+    sam.start()
+    editor.input.release(...at(0.2, -0.2), { ...release, from: at(-0.2, 0.2) })
+    expect(smart.prompts.value.box).not.toBeNull()
+    expect(types()).toEqual(['load'])
     worker().reply({ type: 'ready' })
-    smart.settled!()
-    expect(worker().sent.map((r) => r.type)).toEqual([
-      'load',
-      'encode',
-      'decode',
-    ])
+    expect(types()).toEqual(['load', 'encode', 'decode'])
   })
 
   test('a dragged box is sent as a box, corners in order', () => {
-    smart.release!(...at(0.2, -0.2), { ...release, from: at(-0.2, 0.2) })
+    editor.input.release(...at(0.2, -0.2), { ...release, from: at(-0.2, 0.2) })
     const decode = worker().sent.at(-1)
     expect(decode).toMatchObject({ type: 'decode', points: [] })
     const [x0, y0, x1, y1] = (decode as { box: number[] }).box
     expect(x0 < x1 && y0 < y1).toBe(true)
-    expect(prompts.get().box).not.toBeNull()
   })
 
   test('clicks add points; Alt-click or a long press excludes', () => {
-    const from = at(0, 0)
-    smart.release!(...at(0, 0), { ...release, click: true, from })
-    smart.release!(...at(0.1, 0), { ...release, click: true, alt: true, from })
-    smart.release!(...at(0.2, 0), { ...release, click: true, long: true, from })
-    expect(prompts.get().points.map((p) => p.positive)).toEqual([
+    click(0, 0)
+    click(0.1, 0, { alt: true })
+    click(0.2, 0, { long: true })
+    expect(smart.prompts.value.points.map((p) => p.positive)).toEqual([
       true,
       false,
       false,
     ])
   })
 
-  test('labels what the mask covers, live, as one undo step', () => {
-    mask(square(0, 0, 60))
+  test('labels what the mask covers, live, kept as one undo step', () => {
+    select(60)
     const first = labeled(0)
     expect(first).toBeGreaterThan(0)
-    expect(ui.get()).toMatchObject({ selecting: true, past: 1 })
-    // A refined mask redoes the selection from scratch, still one step.
-    mask(square(0, 0, 20))
+    expect(smart.selecting.value).toBe(true)
+    // A refined mask redoes the selection from scratch.
+    worker().reply({ type: 'mask', id: last(), mask: square(0, 0, 20) })
     expect(labeled(0)).toBeLessThan(first)
-    expect(ui.get().past).toBe(1)
+    expect(past()).toBe(0)
+    api.complete()
+    expect(past()).toBe(1)
   })
 
   test('picking a class mid-selection relabels it', () => {
-    mask(square(0, 0, 60))
+    select()
     const n = labeled(0)
-    doc.set({ active: 2 })
-    smart.reclass!()
+    doc.activeId.value = 2
     expect(labeled(2)).toBe(n)
     expect(labeled(0)).toBe(0)
   })
 
   test('Apply keeps the labels and ends the selection', () => {
-    mask(square(0, 0, 60))
+    select()
     const n = labeled()
-    finish()
+    api.complete()
     expect(labeled()).toBe(n)
-    expect(data.base).toBeNull()
-    expect(ui.get().selecting).toBe(false)
-    expect(prompts.get()).toEqual({ points: [], box: null })
+    expect(smart.selecting.value).toBe(false)
+    expect(smart.prompts.value).toEqual({ points: [], box: null })
+  })
+
+  test('anything that edits first keeps the selection, as its own step', () => {
+    select()
+    api.clearClass(1)
+    expect(smart.selecting.value).toBe(false)
+    expect(past()).toBe(1)
+  })
+
+  test('orbiting keeps the selection', () => {
+    select()
+    editor.cameraMoved()
+    expect(smart.selecting.value).toBe(false)
+    expect(past()).toBe(1)
   })
 
   test('Esc undoes the selection as if it never happened', () => {
-    edit.snapshot()
-    edit.paint([0], 1)
-    mask(square(0, 0, 60))
-    expect(cancel()).toBe(true)
+    doc.transact((tx) => tx.paint([0], 1))
+    select()
+    api.cancel()
     expect(labeled()).toBe(1)
-    expect(ui.get()).toMatchObject({ past: 1, future: 0, selecting: false })
-    expect(cancel()).toBe(false)
+    expect(doc.history.value.past).toHaveLength(1)
+    expect(doc.history.value.future).toHaveLength(0)
+    expect(smart.selecting.value).toBe(false)
+  })
+
+  test('Esc with no selection deselects the part instead', () => {
+    session.selectedPart.value = 0
+    api.cancel()
+    expect(session.selectedPart.value).toBe(-1)
   })
 })

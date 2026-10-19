@@ -61,3 +61,16 @@ test('on a large screen, Classes and Parts are both open and stay open', async (
   await page.getByRole('button', { name: /^Classes/ }).click({ force: true })
   await expect(box).toBeVisible()
 })
+
+// Regression: tools registered themselves on import, so a hot reload on the
+// server added duplicates the client didn't have.
+test('the page hydrates without a mismatch', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
+  page.on('pageerror', (e) => errors.push(e.message))
+  await open(page)
+  expect(errors.filter((e) => /hydrat/i.test(e))).toEqual([])
+  await expect(
+    page.getByRole('navigation', { name: 'Tools' }).getByRole('button'),
+  ).toHaveCount(5)
+})

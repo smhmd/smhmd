@@ -1,6 +1,7 @@
 import type { BufferGeometry } from 'three'
 
-import { data, weld } from './mesh'
+import { data } from './geometry'
+import { weld } from './weld'
 
 type Topology = {
   /** Vertex neighbors in CSR form: the neighbors of `v` are `links[offsets[v]..offsets[v + 1]]`. */
@@ -25,7 +26,7 @@ function topology() {
 
   const { triangles } = data
   const position = geometry.getAttribute('position').array
-  const n = data.labels.length
+  const n = position.length / 3
   const twin = weld(position)
   const edges = (visit: (a: number, b: number) => void) => {
     for (let t = 0; t < triangles.length; t += 3) {
@@ -155,7 +156,7 @@ export function flood(
   wall: (v: number) => boolean = () => false,
 ) {
   const { offsets, links } = topology()
-  const seen = new Uint8Array(data.labels.length)
+  const seen = new Uint8Array(offsets.length - 1)
   const out = [seeds].flat()
   const spread = out.length
   for (const v of out) seen[v] = 1

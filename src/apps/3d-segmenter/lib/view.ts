@@ -15,7 +15,8 @@ import {
   type WebGLRenderer,
 } from 'three'
 
-import { type Behavior, type Part, WIDE } from './common'
+import { type Part, WIDE } from './common'
+import { batch, effect, signal } from './core'
 import { data } from './mesh'
 
 const FAR = 16
@@ -48,43 +49,65 @@ export type Controls = {
   update(): void
 }
 
-export const view = {
+/** The canvas's three.js objects. */
+export const three = {
   gl: null as WebGLRenderer | null,
   camera: null as PerspectiveCamera | null,
   controls: null as Controls | null,
-  /** The textured model, without overlays, and X-ray's ghosts of labels. */
-  base: null as Mesh | null,
-  ghost: null as Mesh | null,
-  width: 0,
-  height: 0,
-  depth: new Float32Array(0),
-  screen: new Float32Array(0),
-  visible: new Uint8Array(0),
-  /** The last Smart Select mask, in screen pixels. */
-  mask: new Uint8Array(0) as Uint8Array,
-  /** The last textured frame, for the model and the SAM Cam. */
-  frame: null as ImageData | null,
-  dirty: true,
-  /** Held keys. ⌘ (Ctrl off Apple) turns every tool into the hand, like Figma's Space. */
-  hand: false,
-  shift: false,
-  /** The pointer over the canvas, in canvas pixels; null when it's elsewhere. */
-  pointer: null as readonly [number, number] | null,
-  /** The canvas only redraws on demand; call after changing anything imperatively. */
+  /** The textured model, without overlays, and the labels X-ray has made see-through. */
+  model: null as Mesh | null,
+  xray: null as Mesh | null,
+  /** The canvas only redraws on demand: `draw` asks for a frame. */
   invalidate: () => {},
 }
 
+/** The view as last captured, for picking: what's where on screen, and what's in front. */
+export type Capture = {
+  width: number
+  height: number
+  depth: Float32Array
+  /** Per vertex: its screen position, x and y. */
+  screen: Float32Array
+  /** Per vertex: 1 when it's on screen and nothing hides it. */
+  seen: Uint8Array
+  /** The textured view, for the model and the SAM Cam; null when the tool didn't need it. */
+  frame: ImageData | null
+}
+
+/** The canvas is up (or remade). */
+export const connected = signal(0)
+/** The capture no longer matches the camera; picking waits for a new one. */
+export const stale = signal(true)
+export const captured = signal<Capture | null>(null)
+
+export function connect(
+  objects: Pick<typeof three, 'gl' | 'camera' | 'controls' | 'invalidate'>,
+) {
+  Object.assign(three, objects)
+  connected.value++
+}
+
+/** An effect that changes what's drawn: the canvas redraws after each run. */
+export const draw = (fn: () => void): (() => void) =>
+  effect(() => {
+    fn()
+    three.invalidate()
+  })
+
 let targets: [WebGLRenderTarget, WebGLRenderTarget] | undefined
 
+/** What a tool needs from a capture: the textured view (for SAM), or X-ray treated as off (for the eraser). */
+export type Needs = { needsImage?: boolean; ignoresXray?: boolean }
+
 /**
- * Renders the view's depth for visibility and projects every vertex, as the
- * tool sees it: for one that reaches `ghosts`, X-ray's ghosts are solid. For
- * one that needs the `image`, it also renders the textured view into
- * `view.frame`, for SAM. Returns whether there was anything to capture yet.
+ * Renders the view's depth and projects every vertex, as the tool sees it:
+ * one that ignores X-ray sees see-through labels as solid; one that needs the
+ * image gets the textured view too. Returns whether there was anything to
+ * capture yet.
  */
-export function capture({ image, ghosts }: Behavior) {
-  const { gl, camera, base, ghost } = view
-  if (!gl || !camera || !base || !ghost || !data.geometry) return false
+export function capture({ needsImage, ignoresXray }: Needs) {
+  const { gl, camera, model, xray } = three
+  if (!gl || !camera || !model || !xray || !data.geometry) return false
 
   const w = gl.domElement.clientWidth
   const h = gl.domElement.clientHeight
@@ -123,8 +146,8 @@ export function capture({ image, ghosts }: Behavior) {
     gl.readRenderTargetPixels(target, 0, 0, w, h, out)
   }
 
-  if (image) pass(color, [BACKGROUND, 1], [base], data.materials, pixels)
-  pass(z, [0, 0], ghosts ? [base, ghost] : [base], DEPTH, packed)
+  if (needsImage) pass(color, [BACKGROUND, 1], [model], data.materials, pixels)
+  pass(z, [0, 0], ignoresXray ? [model, xray] : [model], DEPTH, packed)
 
   gl.setRenderTarget(null)
   gl.setClearColor(clear, alpha)
@@ -145,21 +168,22 @@ export function capture({ image, ghosts }: Behavior) {
     }
   }
 
-  Object.assign(view, {
-    width: w,
-    height: h,
-    depth,
-    mask: new Uint8Array(0),
-    dirty: false,
+  batch(() => {
+    captured.value = {
+      width: w,
+      height: h,
+      depth,
+      ...project(ignoresXray ? data.visible : data.solid, w, h, depth),
+      frame: needsImage ? new ImageData(frame, w, h) : null,
+    }
+    stale.value = false
   })
-  project(ghosts ? data.present : data.shown)
-  if (image) view.frame = new ImageData(frame, w, h)
   return true
 }
 
 /** Projects every vertex in `mask` to the screen, and marks the ones in front. */
-function project(mask: Uint8Array) {
-  const { camera, width: w, height: h, depth } = view
+function project(mask: Uint8Array, w: number, h: number, depth: Float32Array) {
+  const { camera } = three
   const position = data.geometry!.getAttribute('position')
   const n = position.count
   const pv = new Matrix4().multiplyMatrices(
@@ -168,9 +192,9 @@ function project(mask: Uint8Array) {
   ).elements
   const mv = camera!.matrixWorldInverse.elements
   const screen = new Float32Array(n * 2)
-  const visible = new Uint8Array(n)
+  const seen = new Uint8Array(n)
 
-  // What isn't in the depth pass must never count as visible.
+  // What isn't in the depth pass must never count as seen.
   for (let v = 0; v < n; v++) {
     if (!mask[v]) continue
     const x = position.getX(v)
@@ -183,31 +207,28 @@ function project(mask: Uint8Array) {
     screen[v * 2 + 1] = sy
     if (sx < 0 || sy < 0 || sx >= w || sy >= h) continue
     const d = -(mv[2] * x + mv[6] * y + mv[10] * z + mv[14])
-    visible[v] = +(d - depth[(sy | 0) * w + (sx | 0)] < EPSILON)
+    seen[v] = +(d - depth[(sy | 0) * w + (sx | 0)] < EPSILON)
   }
 
-  Object.assign(view, { screen, visible })
+  return { screen, seen }
 }
 
-const at = (x: number, y: number) => (y | 0) * view.width + (x | 0)
-export const inMask = (x: number, y: number) => view.mask[at(x, y)] > 0
-
-/** Visible vertices for which `test(x, y)` holds. */
+/** Vertices seen in the last capture for which `test(x, y)` holds; tracks `captured`. */
 export function pick(test: (x: number, y: number) => boolean) {
-  const { screen, visible } = view
   const out: number[] = []
-  for (let v = 0; v < visible.length; v++)
-    if (visible[v] && test(screen[v * 2], screen[v * 2 + 1])) out.push(v)
+  const { screen, seen } = captured.value ?? {}
+  if (!screen || !seen) return out
+  for (let v = 0; v < seen.length; v++)
+    if (seen[v] && test(screen[v * 2], screen[v * 2 + 1])) out.push(v)
   return out
 }
 
 /** World units per screen pixel at a point's depth, so a ring on screen becomes a reach in 3D. */
 export function pixel(point: Vector3) {
-  const camera = view.camera!
+  const camera = three.camera!
   const depth = -point.clone().applyMatrix4(camera.matrixWorldInverse).z
-  return (
-    (2 * depth * Math.tan(MathUtils.degToRad(camera.fov) / 2)) / view.height
-  )
+  const height = captured.peek()?.height ?? 1
+  return (2 * depth * Math.tan(MathUtils.degToRad(camera.fov) / 2)) / height
 }
 
 /**
@@ -216,7 +237,9 @@ export function pixel(point: Vector3) {
  * vertex, so a big flat face is under the pointer even far from its corners.
  */
 export function under(x: number, y: number) {
-  const { screen, camera } = view
+  const screen = captured.value?.screen
+  const { camera } = three
+  if (!screen) return null
   const geometry = data.geometry!
   const index = geometry.index!.array
   const p = geometry.getAttribute('position').array
@@ -255,7 +278,7 @@ export function under(x: number, y: number) {
 
 /** Points the camera at a part (or the whole model), keeping the viewing angle. */
 export function fit(part?: Part) {
-  const { camera, controls } = view
+  const { camera, controls } = three
   const position = data.geometry?.getAttribute('position')
   if (!camera || !controls || !position) return
 
@@ -290,7 +313,7 @@ export const gizmoMargin = (viewport: number): [number, number] => [
 
 /** Whether a canvas point is on the gizmo, which takes its own clicks. */
 export function onGizmo(x: number, y: number) {
-  const canvas = view.gl!.domElement
+  const canvas = three.gl!.domElement
   const [mx, my] = gizmoMargin(innerWidth)
   const [cx, cy] = [canvas.clientWidth - mx, canvas.clientHeight - my]
   return (x - cx) ** 2 + (y - cy) ** 2 < 48 ** 2

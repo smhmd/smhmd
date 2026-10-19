@@ -5,7 +5,7 @@ import clsx from 'clsx'
 
 import { CenterFocus, Sell, Visibility, VisibilityOff } from 'src/icons'
 
-import { api, classById, doc, type Part, ui } from '../lib'
+import { api, doc, mesh, type Part, session, useValue } from '../lib'
 import { ClassMenu } from './ClassMenu'
 import { button, Fold, IconButton, item, small, Tip, Trailing } from './ui'
 
@@ -15,7 +15,7 @@ import { button, Fold, IconButton, item, small, Tip, Trailing } from './ui'
  * makes no sense. Alt-click an eye to solo a part, like Blender's local view.
  */
 export function Parts() {
-  const parts = doc.use('parts')
+  const parts = useValue(mesh.parts)
   const anyHidden = parts.some((p) => p.hidden)
 
   return (
@@ -51,10 +51,17 @@ export function Parts() {
  * or selecting a row outlines the part in the canvas.
  */
 const Row = memo(({ part, index }: { part: Part; index: number }) => {
-  const selected = ui.use((s) => s.part === index)
-  // Primitives, so edits to other classes (like their counts) skip this row.
-  const name = doc.use((s) => classById(s, part.cls)?.name)
-  const color = doc.use((s) => classById(s, part.cls)?.color)
+  const selected = useValue(() => session.selectedPart.value === index, [index])
+  // Primitives, so edits to other classes and parts skip this row.
+  const cls = useValue(() => mesh.tally.value.classOf[index] ?? -1, [index])
+  const name = useValue(
+    () => doc.classes.value.find((c) => c.id === cls)?.name,
+    [cls],
+  )
+  const color = useValue(
+    () => doc.classes.value.find((c) => c.id === cls)?.color,
+    [cls],
+  )
 
   return (
     <li

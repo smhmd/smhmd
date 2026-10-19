@@ -9,7 +9,9 @@ import { open } from './app'
 
 test('exports a Supervisely mesh project as one tar', async ({ page }) => {
   await open(page)
-  await page.evaluate(() => window.m.api.assignPart(window.m.data.parts[0], 0))
+  await page.evaluate(() =>
+    window.m.api.assignPart(window.m.mesh.parts.value[0], 0),
+  )
   // Hidden parts and X-ray must not change what's exported.
   await page.evaluate(() => window.m.api.togglePart(1))
   await page.keyboard.press('x')
@@ -25,11 +27,11 @@ test('exports a Supervisely mesh project as one tar', async ({ page }) => {
 
   const folder = 'groceries/annotations/groceries.ply'
   const [label] = JSON.parse(read(`${folder}/annotation.json`)).labels
-  const count = await page.evaluate(() => window.m.data.parts[0].count)
+  const count = await page.evaluate(() => window.m.mesh.parts.value[0].count)
   const indices = readFileSync(join(dir, folder, label.geometry.indicesPath))
   expect(indices.length).toBe(count * 4)
 
-  const vertices = await page.evaluate(() => window.m.data.labels.length)
+  const vertices = await page.evaluate(() => window.m.doc.labels.peek().length)
   expect(read('groceries/meshes/groceries.ply')).toContain(
     `element vertex ${vertices}`,
   )

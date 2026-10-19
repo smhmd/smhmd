@@ -2,8 +2,7 @@ import { useEffect } from 'react'
 
 import clsx from 'clsx'
 
-import { AWAY, tools, ui, view } from '../lib'
-import { TOOLS } from './tools'
+import { AWAY, session, tool, useValue } from '../lib'
 
 type CursorProps = {
   stage: React.RefObject<HTMLDivElement | null>
@@ -15,12 +14,11 @@ type CursorProps = {
  * this only re-renders when the tool or size changes.
  */
 export function Cursor({ stage, ring }: CursorProps) {
-  const tool = ui.use('tool')
-  const radius = ui.use('radius')
-  const { gesture } = tools[tool]
-  const look = TOOLS[tool].ring
+  const { gesture, ring: look } = useValue(tool)
+  const radius = useValue(session.radius)
   // Switching tools with the keyboard: the new ring starts where the pointer already is.
-  const at = view.pointer ? `${view.pointer[0]}px ${view.pointer[1]}px` : AWAY
+  const p = session.pointer.peek()
+  const at = p ? `${p[0]}px ${p[1]}px` : AWAY
 
   useEffect(() => {
     stage.current!.style.cursor = gesture ? 'crosshair' : 'grab'
@@ -49,7 +47,7 @@ export function Cursor({ stage, ring }: CursorProps) {
         'pointer-events-none absolute left-0 top-0 rounded-full border shadow-[0_0_0_1px_rgb(0_0_0/0.4)]',
         // Holding Ctrl turns any tool into the hand, so the ring would lie.
         'in-data-hand:hidden',
-        look,
+        look.style,
       )}
       style={{
         width: radius * 2,

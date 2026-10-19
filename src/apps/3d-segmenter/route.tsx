@@ -7,7 +7,7 @@ import { Container } from 'src/components'
 import { generateHead } from 'src/lib/server'
 
 import { Drop, Header, Inspector, Sidebar, Stage } from './components'
-import { api, SAMPLE, useShortcuts } from './lib'
+import { SAMPLE, start, useShortcuts } from './lib'
 import { AppIcon, metadata } from './metadata'
 
 export const { meta, links } = generateHead({
@@ -20,7 +20,7 @@ export const { meta, links } = generateHead({
 })
 
 export default function App() {
-  useEffect(api.start, [])
+  useEffect(start, [])
   useShortcuts()
 
   return (

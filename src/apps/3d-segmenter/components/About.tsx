@@ -3,7 +3,7 @@ import clsx from 'clsx'
 
 import { Help } from 'src/icons'
 
-import { MOD_LABEL, REDO_KEYS, SAMPLE, TOOL_KEYS, UNDO_KEYS } from '../lib'
+import { MOD_LABEL, REDO_KEYS, SAMPLE, TOOLS, UNDO_KEYS } from '../lib'
 import { button, small, Tip } from './ui'
 
 const steps = [
@@ -22,8 +22,8 @@ const steps = [
 
 const keys = [
   [
-    Object.values(TOOL_KEYS).join(' ').toUpperCase(),
-    'Move, smart select, fill, brush, eraser',
+    TOOLS.map((t) => t.key.toUpperCase()).join(' '),
+    TOOLS.map((t) => t.label).join(', '),
   ],
   ['1–9', 'Pick a class'],
   ['[  ]', 'Ring size (or scroll)'],

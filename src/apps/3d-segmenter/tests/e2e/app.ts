@@ -46,28 +46,29 @@ export async function open(page: Page, model = fakeModel()) {
     window.m = await import(/* @vite-ignore */ lib)
   }, '/src/apps/3d-segmenter/lib/index.ts')
   await page.waitForFunction(
-    () => window.m.ui.get().mesh > 0 && !window.m.view.dirty,
+    () => window.m.mesh.opened.value > 0 && !window.m.view.stale.value,
   )
 }
 
 /** Page coordinates of the visible vertex closest to the middle of a part. */
 export async function on(page: Page, name: string) {
   return page.evaluate((name) => {
-    const { data, view } = window.m
-    const part = data.parts.find((p) => p.name === name)!
+    const { mesh, view } = window.m
+    const { screen, seen: visible } = view.captured.value!
+    const part = mesh.parts.value.find((p) => p.name === name)!
     const seen: number[] = []
     for (let v = part.start; v < part.start + part.count; v++)
-      if (view.visible[v]) seen.push(v)
+      if (visible[v]) seen.push(v)
     const mean = (k: number) =>
-      seen.reduce((sum, v) => sum + view.screen[v * 2 + k], 0) / seen.length
+      seen.reduce((sum, v) => sum + screen[v * 2 + k], 0) / seen.length
     const [mx, my] = [mean(0), mean(1)]
     const d = (v: number) =>
-      (view.screen[v * 2] - mx) ** 2 + (view.screen[v * 2 + 1] - my) ** 2
+      (screen[v * 2] - mx) ** 2 + (screen[v * 2 + 1] - my) ** 2
     const best = seen.reduce((a, b) => (d(b) < d(a) ? b : a))
-    const r = view.gl!.domElement.getBoundingClientRect()
+    const r = view.three.gl!.domElement.getBoundingClientRect()
     return {
-      x: r.left + view.screen[best * 2],
-      y: r.top + view.screen[best * 2 + 1],
+      x: r.left + screen[best * 2],
+      y: r.top + screen[best * 2 + 1],
     }
   }, name)
 }
@@ -75,15 +76,32 @@ export async function on(page: Page, name: string) {
 export const labeled = (page: Page, id?: number) =>
   page.evaluate(
     (id) =>
-      window.m.data.labels.filter((l) => (id == null ? l >= 0 : l === id))
+      window.m.doc.labels.peek().filter((l) => (id == null ? l >= 0 : l === id))
         .length,
     id,
   )
 
 export const previewed = (page: Page) =>
-  page.evaluate(() => window.m.data.preview.drawRange.count)
+  page.evaluate(() => window.m.mesh.data.preview.drawRange.count)
 
-export const ui = (page: Page) => page.evaluate(() => window.m.ui.get())
+/** The session at a glance. */
+export const ui = (page: Page) =>
+  page.evaluate(() => {
+    const { doc, mesh, sam, session, smart, tool } = window.m
+    const { past, future } = doc.history.value
+    return {
+      tool: tool.value.id,
+      status: sam.status.value,
+      selecting: smart.selecting.value,
+      past: past.length,
+      future: future.length,
+      radius: session.radius.value,
+      shading: session.shading.value,
+      grid: session.grid.value,
+      xray: session.xray.value,
+      mesh: mesh.opened.value,
+    }
+  })
 
 /** The ring's (or guides') position, or null when parked off-canvas. */
 export const ring = (page: Page) =>

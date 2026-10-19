@@ -2,12 +2,11 @@ import { Toggle } from '@base-ui/react/toggle'
 import { ToggleGroup } from '@base-ui/react/toggle-group'
 import clsx from 'clsx'
 
-import { api, MOD_LABEL, TOOL_KEYS, TOOL_ORDER, ui } from '../lib'
-import { TOOLS } from './tools'
+import { api, MOD_LABEL, move, tool, TOOLS, useValue } from '../lib'
 import { button, glass, Tip } from './ui'
 
 export function Toolbar() {
-  const tool = ui.use('tool')
+  const active = useValue(() => tool.value.id)
 
   return (
     <nav
@@ -22,24 +21,27 @@ export function Toolbar() {
         'sm:max-lg:bottom-6 sm:max-lg:left-1/2 sm:max-lg:-translate-x-1/2',
       )}>
       <ToggleGroup
-        value={[tool]}
-        onValueChange={([next]) => next && api.setTool(next)}
+        value={[active]}
+        onValueChange={([id]) => {
+          const next = TOOLS.find((t) => t.id === id)
+          if (next) api.setTool(next)
+        }}
         className='flex flex-1 justify-between gap-1'>
-        {TOOL_ORDER.map((id) => {
-          const { label, Icon } = TOOLS[id]
-          const keys = TOOL_KEYS[id].toUpperCase()
+        {TOOLS.map((t) => {
+          const { id, label, Icon, key } = t
+          const keys = key.toUpperCase()
           return (
             <Tip
               key={id}
               label={label}
-              keys={id === 'move' ? `${keys} · or hold ${MOD_LABEL}` : keys}>
+              keys={t === move.tool ? `${keys} · or hold ${MOD_LABEL}` : keys}>
               <Toggle
                 value={id}
                 aria-label={label}
                 className={clsx(
                   button,
                   // Held Ctrl borrows the Move tool, so show it as the active one.
-                  id === 'move'
+                  t === move.tool
                     ? 'in-data-hand:bg-white/12 in-data-hand:text-white'
                     : 'in-data-hand:data-pressed:bg-transparent in-data-hand:data-pressed:text-neutral-400',
                 )}>

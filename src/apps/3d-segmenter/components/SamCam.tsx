@@ -4,14 +4,13 @@ import { isMobile } from 'src/lib/env'
 import { TAU } from 'src/lib/math'
 
 import {
-  activeClass,
-  BACKGROUND,
   type Box,
   doc,
   type Point,
-  prompts,
+  sam,
+  smart,
   type Status,
-  ui,
+  useValue,
   view,
 } from '../lib'
 import { Section } from './ui'
@@ -24,24 +23,26 @@ const BUSY: Partial<Record<Status, string>> = {
 
 /** What the model actually sees: the last frame sent to EdgeTAM, its raw 2D mask, and your clicks. */
 export function SamCam() {
-  const frame = ui.use('frame')
-  const busy = ui.use((s) => BUSY[s.status])
-  const color = doc.use((s) => activeClass(s)?.color ?? '#ffffff')
-  const { points, box } = prompts.use()
+  const capture = useValue(view.captured)
+  const mask = useValue(sam.mask)
+  const busy = useValue(() => BUSY[sam.status.value])
+  const color = useValue(() => doc.activeClass.value?.color ?? '#ffffff')
+  const { points, box } = useValue(smart.prompts)
   const canvas = useRef<HTMLCanvasElement>(null)
 
   // Before paint, so a new frame never flashes at the old size. Phones never
   // show the Inspector, so they skip the per-frame copies.
   useLayoutEffect(() => {
-    if (!isMobile) draw(canvas.current!, color, points, box)
-  }, [frame, color, points, box])
+    if (!isMobile && capture?.frame)
+      draw(canvas.current!, capture.frame, color, mask, points, box)
+  }, [capture, mask, color, points, box])
 
   return (
     <Section title='SAM Cam'>
       {/* A fixed screen in the frame's own gray, so letterboxing is invisible and it never jumps. */}
       <div
         className='ring-white/6 aspect-4/3 relative mx-3 overflow-hidden rounded-md ring-1'
-        style={{ background: BACKGROUND }}>
+        style={{ background: view.BACKGROUND }}>
         <canvas ref={canvas} aria-hidden className='size-full object-contain' />
         {busy && (
           <span className='text-xxs absolute bottom-1.5 left-1.5 rounded bg-black/60 px-1.5 py-0.5 text-neutral-300'>
@@ -58,18 +59,19 @@ export function SamCam() {
 
 function draw(
   canvas: HTMLCanvasElement,
+  frame: ImageData,
   color: string,
+  mask: Uint8Array | null,
   points: Point[],
   box: Box | null,
 ) {
-  const { frame, mask, width, height } = view
-  if (!frame) return
+  const { width, height } = frame
   const ctx = canvas.getContext('2d')!
   canvas.width = width
   canvas.height = height
   ctx.putImageData(frame, 0, 0)
 
-  if (mask.length === width * height) {
+  if (mask?.length === width * height) {
     const overlay = new ImageData(width, height)
     const [r, g, b] = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16))
     for (let i = 0; i < mask.length; i++)

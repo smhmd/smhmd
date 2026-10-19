@@ -1,30 +1,34 @@
 import { BufferAttribute, BufferGeometry, Color, type Material } from 'three'
 
-import type { Cls, Part } from '../common'
+import type { Part } from '../common'
+import { computed, doc, signal } from '../core'
 import { PREVIEW } from './materials'
+
+/** The model's file name, and a count of models opened, so a reopened file counts as new. */
+export const name = signal('')
+export const opened = signal(0)
+export const parts = signal<Part[]>([])
+/** Bumps when what's drawn (and so pickable) changes. */
+export const drawn = signal(0)
 
 export const data = {
   /**
-   * What's drawn and pickable. `ghost` (X-rayed labels), `outline` (one
-   * part's silhouette) and `preview` (Fill's region) share its attributes.
+   * What's drawn solid, and so pickable. `xray` (labels X-ray has made
+   * see-through), `outline` (one part's silhouette) and `preview` (Fill's
+   * region) share its attributes.
    */
   geometry: null as BufferGeometry | null,
-  ghost: new BufferGeometry(),
+  xray: new BufferGeometry(),
   outline: new BufferGeometry(),
   preview: new BufferGeometry(),
   /** Every triangle, as loaded; `refresh` filters it into the two above. */
   triangles: new Uint32Array(0),
-  /** Per vertex: 1 when its part is shown, solid or ghosted. */
-  present: new Uint8Array(0),
-  /** Per vertex: 1 when it's drawn solid, so it can be seen, painted and selected. */
-  shown: new Uint8Array(0),
+  /** Per vertex: 1 when its part is shown, solid or see-through. */
+  visible: new Uint8Array(0),
+  /** Per vertex: 1 when it's drawn solid, so it can be painted and selected. */
+  solid: new Uint8Array(0),
   /** One textured material per part, matching the geometry's groups. */
   materials: [] as Material[],
-  parts: [] as Part[],
-  /** Class id per vertex, -1 when unlabeled. */
-  labels: new Int32Array(0),
-  /** The labels before the live Smart Select selection; null when there's none. */
-  base: null as Int32Array | null,
   center: [0, 0, 0],
   scale: 1,
   /** What the file held, for the Model section. `size` is in the file's own units. */
@@ -38,43 +42,53 @@ export const data = {
 }
 
 /**
- * Splits triangles into drawn and ghosted: hidden parts vanish, and with
- * `xray` any triangle touching a label moves to the ghost, except labels that
+ * Per vertex, 1 when it's drawn solid. Reading `drawn` makes an effect that
+ * calls this re-run when what's solid changes; the array itself can't tell it.
+ */
+export function pickable() {
+  void drawn.value
+  return data.solid
+}
+
+/**
+ * Splits triangles into solid and see-through: hidden parts vanish, and with
+ * `xray` any triangle touching a label turns see-through, except labels that
  * differ from `base` (a selection still being refined). Everything that picks
  * (brush, Smart Select, depth pass) only sees what's drawn.
  * Returns whether the drawn set changed size, i.e. the view needs a recapture.
  */
-export function refresh(xray: boolean) {
-  const { geometry, ghost, triangles, labels, parts, present, shown, base } =
-    data
+export function refresh(xray: boolean, base: ArrayLike<number> | null = null) {
+  const { geometry, xray: faint, triangles, visible, solid } = data
+  const all = doc.labels.peek()
+  const list = parts.peek()
   if (!geometry) return false
-  present.fill(0)
-  shown.fill(0)
-  for (const p of parts)
+  visible.fill(0)
+  solid.fill(0)
+  for (const p of list)
     if (!p.hidden)
       for (let v = p.start; v < p.start + p.count; v++) {
-        present[v] = 1
-        shown[v] = +(
+        visible[v] = 1
+        solid[v] = +(
           !xray ||
-          labels[v] === -1 ||
-          (base !== null && base[v] !== labels[v])
+          all[v] === -1 ||
+          (base !== null && base[v] !== all[v])
         )
       }
 
-  const solid = geometry.index!.array as Uint32Array
-  const faint = ghost.index!.array as Uint32Array
+  const drawn = geometry.index!.array as Uint32Array
+  const seeThrough = faint.index!.array as Uint32Array
   const before = geometry.drawRange.count
   let s = 0
   let f = 0
   let t = 0
   geometry.clearGroups()
-  parts.forEach((part, i) => {
+  list.forEach((part, i) => {
     const start = s
     const end = t + part.faces
     for (; !part.hidden && t < end; t += 3) {
       const [a, b, c] = [triangles[t], triangles[t + 1], triangles[t + 2]]
-      const out = shown[a] && shown[b] && shown[c] ? solid : faint
-      const at = out === solid ? (s += 3) - 3 : (f += 3) - 3
+      const out = solid[a] && solid[b] && solid[c] ? drawn : seeThrough
+      const at = out === drawn ? (s += 3) - 3 : (f += 3) - 3
       out[at] = a
       out[at + 1] = b
       out[at + 2] = c
@@ -83,8 +97,8 @@ export function refresh(xray: boolean) {
     geometry.addGroup(start, s - start, i)
   })
   geometry.setDrawRange(0, s)
-  ghost.setDrawRange(0, f)
-  geometry.index!.needsUpdate = ghost.index!.needsUpdate = true
+  faint.setDrawRange(0, f)
+  geometry.index!.needsUpdate = faint.index!.needsUpdate = true
   return s !== before
 }
 
@@ -110,18 +124,22 @@ export function highlight(region: Uint8Array | null, color?: string) {
 
 /** Outlines a part (-1 for none) by drawing only its triangles. */
 export function outline(index: number) {
-  const part = data.parts[index]
-  const first = data.parts
+  const part = parts.peek()[index]
+  const first = parts
+    .peek()
     .slice(0, Math.max(index, 0))
     .reduce((sum, p) => sum + p.faces, 0)
   data.outline.setDrawRange(first, part && !part.hidden ? part.faces : 0)
 }
 
 /**
- * Writes label colors (all of them, or just `vertices`, e.g. a stroke's);
- * unlabeled vertices and hidden classes are transparent.
+ * Writes label colors (all of them, or just `batches` of vertices, e.g. a
+ * stroke's); unlabeled vertices and hidden classes are transparent.
  */
-export function colorize(classes: Cls[], vertices?: Iterable<number>) {
+export function colorize(
+  classes: doc.Cls[],
+  batches: ArrayLike<number>[] | null = null,
+) {
   const attr = data.geometry?.getAttribute('color') as BufferAttribute
   if (!attr) return
   const bytes = (hex: string) =>
@@ -129,49 +147,37 @@ export function colorize(classes: Cls[], vertices?: Iterable<number>) {
   const colors = new Map(
     classes.filter((c) => !c.hidden).map((c) => [c.id, bytes(c.color)]),
   )
-  const { labels } = data
+  const all = doc.labels.peek()
   const out = attr.array as Uint8Array
   const write = (v: number) => {
-    const c = colors.get(labels[v])
+    const c = colors.get(all[v])
     if (c) out.set(c, v * 4)
     out[v * 4 + 3] = c ? 255 : 0
   }
-  if (vertices) for (const v of vertices) write(v)
-  else for (let v = 0; v < labels.length; v++) write(v)
+  if (batches)
+    for (const batch of batches)
+      for (let i = 0; i < batch.length; i++) write(batch[i])
+  else for (let v = 0; v < all.length; v++) write(v)
   attr.needsUpdate = true
 }
 
-/** The same array when nothing in it changed, so subscribers skip a render. */
-const keep = <T>(prev: T[], next: T[]) =>
-  next.length === prev.length && next.every((x, i) => x === prev[i])
-    ? prev
-    : next
-
 /**
- * Counts vertices per class, and tags each part with the class covering over
- * half of it. Unchanged classes and parts keep their identity.
+ * Vertices per class, and each part's class: the one covering over half of
+ * it, -1 when none does.
  */
-export function tally(classes: Cls[]) {
-  const totals = new Map<number, number>()
-  data.parts = keep(
-    data.parts,
-    data.parts.map((part) => {
-      const counts = new Map<number, number>()
-      for (let v = part.start; v < part.start + part.count; v++)
-        counts.set(data.labels[v], (counts.get(data.labels[v]) ?? 0) + 1)
-      let cls = -1
-      for (const [id, n] of counts) {
-        totals.set(id, (totals.get(id) ?? 0) + n)
-        if (id !== -1 && n > part.count / 2) cls = id
-      }
-      return cls === part.cls ? part : { ...part, cls }
-    }),
-  )
-  return keep(
-    classes,
-    classes.map((c) => {
-      const count = totals.get(c.id) ?? 0
-      return count === c.count ? c : { ...c, count }
-    }),
-  )
-}
+export const tally = computed(() => {
+  const all = doc.labels.settled
+  const counts = new Map<number, number>()
+  const classOf = parts.value.map((part) => {
+    const own = new Map<number, number>()
+    for (let v = part.start; v < part.start + part.count; v++)
+      own.set(all[v], (own.get(all[v]) ?? 0) + 1)
+    let cls = -1
+    for (const [id, n] of own) {
+      counts.set(id, (counts.get(id) ?? 0) + n)
+      if (id !== -1 && n > part.count / 2) cls = id
+    }
+    return cls
+  })
+  return { counts, classOf }
+})
