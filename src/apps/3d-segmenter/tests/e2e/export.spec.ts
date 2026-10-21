@@ -5,7 +5,7 @@ import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
 
-import { open } from './app'
+import { labeled, open } from './app'
 
 test('exports a Supervisely mesh project as one tar', async ({ page }) => {
   await open(page)
@@ -34,5 +34,34 @@ test('exports a Supervisely mesh project as one tar', async ({ page }) => {
   const vertices = await page.evaluate(() => window.m.doc.labels.peek().length)
   expect(read('groceries/meshes/groceries.ply')).toContain(
     `element vertex ${vertices}`,
+  )
+})
+
+test('opens its own export again, labels and all', async ({ page }) => {
+  await open(page)
+  await page.evaluate(() => {
+    const { api, mesh } = window.m
+    api.editClass(0, { name: 'cereal' })
+    api.assignPart(mesh.parts.value[0], 0)
+    api.assignPart(mesh.parts.value[2], 1)
+  })
+  const before = [await labeled(page, 0), await labeled(page, 1)]
+  const download = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Export' }).click()
+  const file = await (await download).path()
+
+  // Phones and large screens each have an Open, so two inputs.
+  await page
+    .locator('input[type=file]')
+    .first()
+    .setInputFiles({
+      name: 'groceries.tar',
+      mimeType: 'application/x-tar',
+      buffer: readFileSync(file),
+    })
+  await expect(page.getByText('groceries.ply')).toBeVisible()
+  expect([await labeled(page, 0), await labeled(page, 1)]).toEqual(before)
+  expect(await page.evaluate(() => window.m.doc.classes.value[0].name)).toBe(
+    'cereal',
   )
 })

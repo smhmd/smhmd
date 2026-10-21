@@ -2,7 +2,7 @@ import { uuid } from 'src/lib/utils'
 
 import { doc } from '../core'
 import { ply } from './ply'
-import { type Entry, tar } from './tar'
+import { type Entry, tar, untar } from './tar'
 
 // Not crypto.randomUUID: that only exists on HTTPS, and a phone on the dev server isn't.
 const key = () => uuid().replaceAll('-', '')
@@ -72,4 +72,46 @@ export function supervisely(name: string, classes: doc.Cls[]) {
     })),
   ]
   return tar(entries)
+}
+
+/**
+ * A Supervisely mesh project, from Export's tar or Supervisely's: its classes,
+ * and each PLY mesh with a class ID per vertex, in the file's vertex order.
+ */
+export function readProject(buffer: ArrayBuffer) {
+  const files = untar(buffer)
+  const json = (path: string) =>
+    JSON.parse(new TextDecoder().decode(files.get(path)))
+  // At the root, as Export writes it, or in a folder, as Supervisely does.
+  const meta = [...files.keys()].find((p) => /^([^/]+\/)?meta\.json$/.test(p))
+  if (!meta) throw new Error('Not a Supervisely project')
+  const root = meta.replace('meta.json', '')
+
+  const classes: doc.Cls[] = json(meta).classes.map(
+    (c: { title: string; color: string }, id: number) => ({
+      id,
+      name: c.title,
+      color: c.color.toLowerCase(),
+      hidden: false,
+    }),
+  )
+  const ids = new Map(classes.map((c) => [c.name, c.id]))
+
+  const meshes = [...files.keys()].flatMap((path) => {
+    const match = path.startsWith(root)
+      ? /^(.+)\/meshes\/([^/]+\.ply)$/.exec(path.slice(root.length))
+      : null
+    if (!match) return []
+    const [, dataset, name] = match
+    const folder = `${root}${dataset}/annotations/${name}`
+    const labels: number[] = []
+    for (const label of json(`${folder}/annotation.json`).labels) {
+      const bin = files.get(`${folder}/${label.geometry.indicesPath}`)!
+      const view = new DataView(bin.buffer, bin.byteOffset, bin.byteLength)
+      for (let at = 0; at < bin.length; at += 4)
+        labels[view.getUint32(at, true)] = ids.get(label.classTitle)!
+    }
+    return [{ name, data: files.get(path)!.slice().buffer, labels }]
+  })
+  return { classes, meshes }
 }

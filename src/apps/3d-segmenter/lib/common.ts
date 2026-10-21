@@ -4,8 +4,8 @@ export const MODEL = 'onnx-community/EdgeTAM-ONNX'
 /** Tailwind's `lg`, in px: panels dock above it and float below. */
 export const WIDE = 1024
 
-/** What Open and drop accept. */
-export const FORMATS = ['glb', 'gltf', 'obj', 'ply', 'stl']
+/** What Open and drop accept: a model, or a Supervisely project. */
+export const FORMATS = ['glb', 'gltf', 'obj', 'ply', 'stl', 'tar']
 
 export const SAMPLE = {
   url: '/models/groceries.glb',

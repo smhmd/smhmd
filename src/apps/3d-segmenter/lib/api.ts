@@ -4,7 +4,7 @@ import { download } from 'src/lib/utils'
 import { FORMATS, type Part, RADIUS, type Shading } from './common'
 import { batch, doc } from './core'
 import * as editor from './editor'
-import { EXPORTS, type ExportFormat } from './export'
+import { EXPORTS, type ExportFormat, readProject } from './export'
 import * as mesh from './mesh'
 import { sam } from './sam'
 import * as session from './session'
@@ -47,7 +47,7 @@ export const api = {
       const ext = file.split('.').pop()!.toLowerCase()
       if (!FORMATS.includes(ext))
         return session.notify(
-          `Can’t open .${ext} files · try GLB, OBJ, PLY or STL`,
+          `Can’t open .${ext} files · try GLB, OBJ, PLY, STL or TAR`,
         )
       session.opening.value = file
       try {
@@ -56,7 +56,16 @@ export const api = {
         const buffer = await (response ?? (source as File)).arrayBuffer()
         // Whatever started while it loaded belongs to the old model.
         editor.complete()
-        await mesh.parse(file, buffer)
+        if (ext === 'tar') {
+          // One model at a time, for now: a project opens its first mesh.
+          const { classes, meshes } = readProject(buffer)
+          const [first] = meshes
+          await mesh.parse(first.name, first.data, first.labels)
+          batch(() => {
+            doc.classes.value = classes
+            doc.activeId.value = classes[0]?.id ?? -1
+          })
+        } else await mesh.parse(file, buffer)
       } catch (e) {
         console.error(e)
         return session.notify(`Couldn’t open ${file}`)

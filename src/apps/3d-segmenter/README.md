@@ -1,6 +1,6 @@
 # 3D Segmenter
 
-Label 3D meshes per vertex in the browser and export [Supervisely](https://supervisely.com) mesh projects. Smart Select runs EdgeTAM, a 20 MB model, locally in a worker.
+Label 3D meshes per vertex in the browser and export [Supervisely](https://supervisely.com) mesh projects, or open one to keep labeling. Smart Select runs EdgeTAM, a 20 MB model, locally in a worker.
 
 ## Code map
 
@@ -9,7 +9,7 @@ Label 3D meshes per vertex in the browser and export [Supervisely](https://super
 - `lib/tools/`: tools and their definitions
 - `lib/mesh/`, `lib/view.ts`, `lib/render.ts`, `lib/navigation.ts`: geometry, picking, rendering and navigation
 - `lib/sam.ts`, `lib/sam.worker.ts`: on-device model integration
-- `lib/export/`: export formats
+- `lib/export/`: export formats, and opening Supervisely projects back
 - `lib/session.ts`, `lib/hooks/`: session state and input helpers
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for the design principles and module boundaries.

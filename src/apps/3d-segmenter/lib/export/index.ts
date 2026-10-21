@@ -1,6 +1,8 @@
 import type { doc } from '../core'
 import { supervisely } from './supervisely'
 
+export { readProject } from './supervisely'
+
 export type ExportFormat = {
   name: string
   extension: string

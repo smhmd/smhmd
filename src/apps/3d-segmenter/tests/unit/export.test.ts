@@ -1,11 +1,19 @@
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { BoxGeometry, SphereGeometry } from 'three'
 import { beforeEach, describe, expect, test } from 'vitest'
 
+import { api } from '../../lib/api'
 import { ply } from '../../lib/export/ply'
 import { supervisely } from '../../lib/export/supervisely'
 import { doc } from '../../lib/core'
@@ -121,5 +129,55 @@ describe('supervisely', () => {
     )
     expect(indices(labels[1])).toEqual([ball.start + 3])
     expect(labels[0]).toMatchObject({ geometryType: 'mesh', tags: [] })
+  })
+})
+
+describe('opening a Supervisely project', () => {
+  const name = 'a model with a rather long name, to test long paths.obj'
+  const dataset = name.replace('.obj', '')
+  const open = (archive: BlobPart) =>
+    api.open(new File([archive], 'project.tar'))
+
+  /** Every vertex as its coordinates and class: what labels mean, whatever the vertex order. */
+  const labeled = () => {
+    const all = lines()
+    const first = header(all).length
+    return Array.from(doc.labels.peek(), (id, v) => `${all[first + v]} ${id}`)
+  }
+  const label = () => {
+    const [box, ball] = mesh.parts.value
+    doc.transact((tx) => {
+      tx.fill(1, box.start, box.start + box.count)
+      tx.paint([ball.start + 3], 2)
+    })
+    return labeled().sort()
+  }
+
+  test('brings back an export’s classes and labels', async () => {
+    const [box, ball] = mesh.parts.value
+    const before = label()
+    const classes = doc.CLASSES.map((c) => ({ ...c, name: `${c.name}s` }))
+    await open(supervisely(name, classes))
+    expect(mesh.name.value).toBe(`${dataset}.ply`)
+    expect(doc.classes.value).toEqual(classes)
+    // The file is one mesh, so it splits into pieces again, the ball first:
+    // the labels had to follow their vertices.
+    expect(mesh.parts.value.map((p) => p.count)).toEqual([
+      ball.count,
+      box.count,
+    ])
+    expect(labeled().sort()).toEqual(before)
+  })
+
+  test('reads one packed in a folder by another tar, as Supervisely’s are', async () => {
+    const before = label()
+    const { dir } = await unpack(name)
+    mkdirSync(join(dir, 'project'))
+    for (const entry of ['meta.json', dataset])
+      renameSync(join(dir, entry), join(dir, 'project', entry))
+    const file = join(dir, 'project.tar')
+    execFileSync('tar', ['--format=pax', '-cf', file, '-C', dir, 'project'])
+    await open(readFileSync(file))
+    expect(labeled().sort()).toEqual(before)
   })
 })

@@ -31,7 +31,7 @@ export function Actions({ className }: { className?: string }) {
           e.target.value = ''
         }}
       />
-      <Tip label='Open Model' keys='GLB · OBJ · PLY · STL'>
+      <Tip label='Open Model' keys='GLB · OBJ · PLY · STL · TAR'>
         <button
           type='button'
           aria-label='Open Model'

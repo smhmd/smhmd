@@ -17,7 +17,10 @@ const steps = [
   ],
   ['Brush & Eraser', 'Touch up the edges.'],
   ['X-ray', 'See through labels to reach what’s behind them.'],
-  ['Export', 'A Supervisely mesh project (.tar), ready to import.'],
+  [
+    'Export',
+    'A Supervisely mesh project (.tar), ready to import, or to open here again.',
+  ],
 ]
 
 const keys = [

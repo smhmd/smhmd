@@ -52,7 +52,9 @@ export function Drop() {
           className='pointer-events-none fixed inset-0 z-50 grid place-items-center bg-black/50 p-3 backdrop-blur-sm'>
           <div className='grid size-full place-content-center gap-1 rounded-2xl border-2 border-dashed border-white/30 text-center'>
             <p className='text-sm font-medium text-white'>Drop to Open</p>
-            <p className='text-xs text-neutral-400'>GLB, OBJ, PLY or STL</p>
+            <p className='text-xs text-neutral-400'>
+              GLB, OBJ, PLY, STL or Supervisely TAR
+            </p>
           </div>
         </motion.div>
       )}

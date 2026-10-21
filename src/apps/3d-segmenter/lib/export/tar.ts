@@ -16,6 +16,31 @@ export function tar(entries: Entry[]) {
   return new Blob(parts, { type: 'application/x-tar' })
 }
 
+const decoder = new TextDecoder()
+
+/** Every file in a tar, by path: ustar like `tar`'s, and the pax paths Supervisely writes past 100 bytes. */
+export function untar(buffer: ArrayBuffer) {
+  const bytes = new Uint8Array(buffer)
+  const text = (at: number, length: number) =>
+    decoder.decode(bytes.subarray(at, at + length)).replace(/\0.*$/s, '')
+  const files = new Map<string, Uint8Array>()
+  let pax: string | undefined
+  // Two empty blocks end the archive.
+  for (let at = 0; bytes[at]; ) {
+    const size = parseInt(text(at + 124, 12), 8)
+    const type = text(at + 156, 1)
+    const prefix = text(at + 345, 155)
+    const data = bytes.subarray(at + BLOCK, at + BLOCK + size)
+    const path = pax ?? (prefix ? `${prefix}/` : '') + text(at, 100)
+    pax = undefined
+    if (type === 'x') pax = /\d+ path=(.*)\n/.exec(decoder.decode(data))?.[1]
+    else if (type === '0' || type === '')
+      files.set(path.replace(/^\.\//, ''), data)
+    at += BLOCK + Math.ceil(size / BLOCK) * BLOCK
+  }
+  return files
+}
+
 function header(path: string, size: number) {
   const block = new Uint8Array(BLOCK)
   const write = (offset: number, length: number, value: string | Uint8Array) =>

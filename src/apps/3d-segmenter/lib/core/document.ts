@@ -248,12 +248,12 @@ function travel(back: boolean) {
 export const undo = () => travel(true)
 export const redo = () => travel(false)
 
-/** A new, unlabeled document of `count` elements, with no history. */
-export function reset(count: number) {
+/** A new document with these labels, and no history. */
+export function reset(labels: Int32Array<ArrayBuffer>) {
   batch(() => {
     open = null
     pending.value = null
-    array = new Int32Array(count).fill(-1)
+    array = labels
     history.value = { past: [], future: [] }
     wrote(null, true)
   })

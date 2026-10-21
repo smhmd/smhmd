@@ -84,8 +84,9 @@ function clean(mesh: Mesh) {
 const PIECES = 64
 
 /**
- * A mesh's connected pieces, biggest first, or just the mesh when it's one
- * piece or too many. Welded by position, so seams don't split a piece.
+ * A mesh's connected pieces, biggest first, with the vertices each took, or
+ * null when it's one piece or too many. Welded by position, so seams don't
+ * split a piece.
  */
 function split(geometry: BufferGeometry) {
   const index = geometry.index!.array
@@ -113,7 +114,7 @@ function split(geometry: BufferGeometry) {
     if (!groups.has(r)) groups.set(r, [])
     groups.get(r)!.push(v)
   }
-  if (groups.size < 2 || groups.size > PIECES) return [geometry]
+  if (groups.size < 2 || groups.size > PIECES) return null
 
   const remap = new Int32Array(n)
   return [...groups.values()]
@@ -135,7 +136,7 @@ function split(geometry: BufferGeometry) {
         if (find(index[t]) === own)
           faces.push(remap[index[t]], remap[index[t + 1]], remap[index[t + 2]])
       piece.setIndex(faces)
-      return piece
+      return { geometry: piece, vertices }
     })
 }
 
@@ -151,8 +152,15 @@ function material(source: Material | Material[]) {
   })
 }
 
-/** Opens a model as a new document: every mesh merged into one geometry, one part each. */
-export async function parse(name: string, buffer: ArrayBuffer) {
+/**
+ * Opens a model as a new document: every mesh merged into one geometry, one
+ * part each. `labels` are a class ID per vertex in the file's order, if any.
+ */
+export async function parse(
+  name: string,
+  buffer: ArrayBuffer,
+  labels: ArrayLike<number> = [],
+) {
   const root = await load(name, buffer)
   root.updateMatrixWorld(true)
 
@@ -169,11 +177,14 @@ export async function parse(name: string, buffer: ArrayBuffer) {
     material: mesh.material,
   }))
   // A single mesh (often a PLY, STL or scan) lists its separate pieces instead.
+  // That reorders its vertices: `order` keeps where each came from in the file.
+  let order: number[] | undefined
   if (sources.length === 1) {
     const [only] = sources
     const pieces = split(only.geometry)
-    if (pieces.length > 1)
-      sources = pieces.map((geometry, i) => ({
+    order = pieces?.flatMap((p) => p.vertices)
+    if (pieces)
+      sources = pieces.map(({ geometry }, i) => ({
         ...only,
         geometry,
         name: `Piece ${i + 1}`,
@@ -250,7 +261,12 @@ export async function parse(name: string, buffer: ArrayBuffer) {
     },
   })
   batch(() => {
-    doc.reset(count)
+    doc.reset(
+      Int32Array.from(
+        { length: count },
+        (_, v) => labels[order ? order[v] : v] ?? -1,
+      ),
+    )
     model.parts.value = parts
     model.name.value = name
     model.opened.value++
