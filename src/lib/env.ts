@@ -8,7 +8,7 @@ export const REPO_LINK = `https://github.com/${GITHUB_REPO}/`
 export const SITE = {
   name: `Simo`,
   title: `Mohamed (Simo) Marhraoui | Senior Software Engineer`,
-  description: `I'm Mohamed (Simo) Marhraoui, a senior Software engineer. I design and build for the web. This is my portfolio. Please try all the apps I've made! I think they're super fun.`,
+  description: `I'm Mohamed (Simo) Marhraoui, a senior software engineer. I design and build for the web. This is my portfolio. Please try all the apps I've made! I think they're super fun.`,
   siteName: `Simo's Portfolio`,
   image: `${DOMAIN}/og/site.jpg`,
   imageAlt: `The web can do more than scroll. smhmd.dev by Simo: eight apps, from 2048 to a kalimba`,
