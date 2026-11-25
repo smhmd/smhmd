@@ -127,7 +127,7 @@ export default function Launcher() {
             Simo
           </h1>
           <p className='text-[1.5cqh] font-medium text-neutral-50/80'>
-            Senior Frontend Engineer. I design and build for the web.
+            Senior Software Engineer. I design and build for the web.
           </p>
         </div>
       </header>
